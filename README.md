@@ -49,6 +49,7 @@ Edit `config.json` (the pencil icon on GitHub). Saving the file starts a new col
 - `hashtags` are followed on Mastodon and Bluesky. Leave off the `#`.
 - `since` is the earliest date to keep, as `YYYY-MM-DD`.
 - `release` is optional: the release or premiere date, as `YYYY-MM-DD`. The site marks it on the volume chart.
+- `drivers` are the word lists the site uses to tag each post by research area (cast, director, how it was made, marketing). A post is tagged when it contains one of the words or phrases, and can carry more than one tag. End a word with `*` to match any ending (`trailer*` matches trailer and trailers). Add, rename or remove drivers freely, up to 12. Hashtags are matched as one word, so add `mattdamon` as well as `matt damon`.
 - `lookback_days` is how far back each daily run looks once a project has data.
 - Add a second project by adding another block inside `projects`.
 - To turn a source off for a project, add `"skip_sources": ["reddit"]`.

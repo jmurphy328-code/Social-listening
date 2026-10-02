@@ -6,7 +6,14 @@
       "title": "The Odyssey",
       "queries": ["\"The Odyssey\" Nolan", "\"The Odyssey\" movie"],
       "hashtags": ["TheOdyssey"],
-      "since": "2026-07-01"
+      "since": "2026-07-01",
+      "release": "2026-07-17",
+      "drivers": {
+        "Cast": ["cast", "casting", "actor*", "actress*", "performance*", "starring", "matt damon", "damon", "mattdamon", "tom holland", "holland", "tomholland", "anne hathaway", "hathaway", "annehathaway", "zendaya", "robert pattinson", "pattinson", "robertpattinson", "lupita", "nyong'o", "charlize", "theron", "bernthal", "samantha morton", "himesh patel", "elliot page", "elliotpage", "safdie", "leguizamo", "bill irwin"],
+        "Director": ["nolan", "christophernolan", "director", "directed", "directing", "direction", "filmmaker"],
+        "How it was made": ["imax", "70mm", "70 mm", "65mm", "shot on", "film cameras", "cinematograph*", "hoytema", "hoyte", "göransson", "goransson", "score", "soundtrack", "sound design", "practical effects", "visual effects", "vfx", "cgi", "stunt*", "costume*", "production design", "behind the scenes", "filming", "filmed", "on location", "budget", "aspect ratio"],
+        "Marketing": ["trailer*", "teaser*", "poster*", "marketing", "promo*", "campaign", "press tour", "premiere", "red carpet", "interview*", "presale*", "pre sale", "advance tickets", "tickets on sale", "year in advance", "sold out", "merch*", "popcorn bucket", "billboard*", "tv spot", "featurette", "first look"]
+      }
     }
   ]
 }

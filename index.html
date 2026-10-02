@@ -151,6 +151,15 @@ th { color: var(--ink-2); font-weight: 600; }
 .post a { color: var(--accent); font-size: 13px; width: fit-content; }
 .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
 
+.multiples { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px 24px; }
+.multi { min-width: 0; }
+.multi-head { display: flex; gap: 8px; align-items: baseline; justify-content: space-between; font-size: 14px; }
+.multi-head b { font-weight: 600; }
+.multi-head span { font-size: 12px; color: var(--muted); }
+.bar-fill.muted { background: var(--neu); }
+.lists { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--ink-2); margin-top: 8px; max-width: 80ch; }
+.lists b { color: var(--ink); font-weight: 600; }
+textarea { font: inherit; font-size: 13px; color: inherit; width: 100%; border: 1px solid var(--axis); background: var(--surface); border-radius: 6px; padding: 8px 10px; line-height: 1.5; }
 .empty { text-align: center; padding: 40px 16px; display: flex; flex-direction: column; gap: 10px; align-items: center; }
 .empty h3 { font-family: var(--display); font-stretch: 75%; font-size: 22px; text-transform: uppercase; }
 
@@ -246,6 +255,8 @@ th { color: var(--ink-2); font-weight: 600; }
       <select id="fSent">
         <option value="">Any sentiment</option><option value="1">Positive</option><option value="0">Neutral</option><option value="-1">Negative</option>
       </select>
+      <label class="sr" for="fDriver">Driver</label>
+      <select id="fDriver"></select>
       <label class="sr" for="fQuery">Search posts</label>
       <input type="search" id="fQuery" placeholder="Search the posts">
       <button class="btn quiet" type="button" id="fClear" hidden>Clear filters</button>
@@ -263,6 +274,23 @@ th { color: var(--ink-2); font-weight: 600; }
       <div class="panel-head"><h2>Sentiment over time</h2><div class="legend" id="sentLegend"></div></div>
       <div class="chart" id="sentChart"></div>
       <p class="sub" id="sentMethod"></p>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2>What is driving the conversation</h2><span class="sub" id="drvSub"></span></div>
+      <div class="bars" id="drvBars"></div>
+      <div class="multiples" id="drvTime"></div>
+      <details class="data"><summary>Show the numbers</summary><div class="table-scroll" id="drvTable"></div></details>
+      <details class="data">
+        <summary>Word lists behind these tags</summary>
+        <div class="lists" id="drvLists"></div>
+        <div id="drvEditor" hidden style="margin-top: 10px; display: flex; flex-direction: column; gap: 8px">
+          <label for="drvEdit" class="sub">One driver per line, as "Name: word, phrase, word". End a word with * to match any ending, as in trailer*.</label>
+          <textarea id="drvEdit" rows="7" spellcheck="false"></textarea>
+          <div class="row"><button class="btn primary" type="button" id="drvSave">Save word lists</button><span class="status" id="drvStatus"></span></div>
+        </div>
+        <p class="sub" id="drvHelp" style="margin-top: 8px"></p>
+      </details>
     </section>
 
     <div class="pair">
@@ -562,6 +590,53 @@ function buildMentions(table, map) {
 const packRow = m => [m.t, m.p, m.a, m.x, m.s, m.e, m.u];
 const unpackRow = r => ({ t: r[0], p: r[1], a: r[2], x: r[3], s: r[4], e: r[5] || 0, u: r[6] || '', key: r[0] + '|' + r[2] + '|' + String(r[3]).slice(0, 90) });
 
+/* ---------- Drivers: keyword tags that sort posts into the research areas ---------- */
+const DEFAULT_DRIVERS = {
+  'Cast': ['cast', 'casting', 'actor*', 'actress*', 'performance*', 'starring', 'acting'],
+  'Director': ['director', 'directed', 'directing', 'direction', 'filmmaker'],
+  'How it was made': ['imax', '70mm', '70 mm', 'shot on', 'cinematograph*', 'practical effects', 'visual effects', 'vfx', 'cgi', 'score', 'soundtrack', 'sound design', 'stunt*', 'costume*', 'production design', 'behind the scenes', 'filming', 'filmed', 'on location', 'budget'],
+  'Marketing': ['trailer*', 'teaser*', 'poster*', 'marketing', 'promo*', 'campaign', 'press tour', 'premiere', 'red carpet', 'interview*', 'presale*', 'advance tickets', 'tickets on sale', 'merch*', 'popcorn bucket', 'billboard*', 'tv spot', 'featurette', 'first look'],
+};
+const NONE = '__none';
+function driversOf(project) {
+  const d = project && project.drivers;
+  return d && typeof d === 'object' && !Array.isArray(d) && Object.keys(d).length ? d : DEFAULT_DRIVERS;
+}
+function compileDrivers(project) {
+  return Object.entries(driversOf(project)).slice(0, 12).map(([name, terms]) => ({
+    name: String(name).slice(0, 40),
+    terms: (Array.isArray(terms) ? terms : []).slice(0, 120).map(raw => {
+      const t = String(raw).trim(), norm = tokens(t).join(' ');
+      return norm ? ' ' + norm + (t.endsWith('*') ? '' : ' ') : null;
+    }).filter(Boolean),
+  }));
+}
+let compiled = [], driverVer = 0, driverKey = '';
+function syncDrivers(project) {
+  const key = JSON.stringify(driversOf(project));
+  if (key !== driverKey) { driverKey = key; compiled = compileDrivers(project); driverVer++; }
+}
+function driverTags(m) {
+  if (m._dv !== driverVer) {
+    if (!m._nt) m._nt = ' ' + tokens(m.x).join(' ') + ' ';
+    m._dr = [];
+    compiled.forEach((d, i) => { if (d.terms.some(t => m._nt.includes(t))) m._dr.push(i); });
+    m._dv = driverVer;
+  }
+  return m._dr;
+}
+function parseDriverText(text) {
+  const out = {};
+  for (const line of String(text).split('\n')) {
+    const i = line.indexOf(':');
+    if (i < 1) continue;
+    const name = line.slice(0, i).trim().slice(0, 40);
+    const terms = line.slice(i + 1).split(',').map(t => t.trim().slice(0, 40)).filter(Boolean).slice(0, 120);
+    if (name && terms.length && Object.keys(out).length < 12) out[name] = terms;
+  }
+  return out;
+}
+
 /* ---------- Analysis ---------- */
 function niceMax(v) {
   if (v <= 12) return v <= 4 ? 4 : v <= 8 ? 8 : 12;
@@ -581,13 +656,14 @@ function applyFilters(all, f, project) {
     if (f.range === 'pre' && !(m.t !== null && m.t < rel)) return false;
     if (f.platform && m.p !== f.platform) return false;
     if (f.sent !== '' && m.s !== +f.sent) return false;
+    if (f.driver) { const tg = driverTags(m); if (f.driver === NONE ? tg.length : !tg.some(i => compiled[i].name === f.driver)) return false; }
     if (q) { if (!m._nt) m._nt = ' ' + tokens(m.x).join(' ') + ' '; if (!m._nt.includes(q)) return false; }
     return true;
   });
 }
 function analyze(list, project, maxBuckets) {
   const A = { n: list.length, pos: 0, neu: 0, neg: 0, eng: 0, authors: new Set(), platforms: new Map(), buckets: [], step: 1, undated: 0, minT: null, maxT: null };
-  let lo = Infinity, hi = -Infinity;
+  let lo = Infinity, hi = -Infinity, d0 = 0;
   for (const m of list) {
     if (m.s > 0) A.pos++; else if (m.s < 0) A.neg++; else A.neu++;
     A.eng += m.e || 0;
@@ -597,7 +673,8 @@ function analyze(list, project, maxBuckets) {
   }
   if (hi >= lo) {
     A.minT = lo; A.maxT = hi;
-    const d0 = Math.floor(lo / DAY), d1 = Math.floor(hi / DAY), span = d1 - d0 + 1;
+    d0 = Math.floor(lo / DAY);
+    const d1 = Math.floor(hi / DAY), span = d1 - d0 + 1;
     A.step = [1, 7, 30, 90, 365].find(k => Math.ceil(span / k) <= maxBuckets) || 365;
     const count = Math.ceil(span / A.step);
     for (let i = 0; i < count; i++) A.buckets.push({ t: (d0 + i * A.step) * DAY, n: 0, pos: 0, neu: 0, neg: 0 });
@@ -605,6 +682,16 @@ function analyze(list, project, maxBuckets) {
       if (m.t === null) continue;
       const b = A.buckets[Math.floor((Math.floor(m.t / DAY) - d0) / A.step)];
       b.n++; if (m.s > 0) b.pos++; else if (m.s < 0) b.neg++; else b.neu++;
+    }
+  }
+  const blank = k => ({ k, n: 0, pos: 0, neg: 0, eng: 0, series: A.buckets.map(() => 0) });
+  A.drivers = compiled.map(d => blank(d.name));
+  A.none = blank('No driver matched');
+  for (const m of list) {
+    const tg = driverTags(m), bi = m.t === null || !A.buckets.length ? -1 : Math.floor((Math.floor(m.t / DAY) - d0) / A.step);
+    for (const d of (tg.length ? tg.map(i => A.drivers[i]) : [A.none])) {
+      d.n++; d.eng += m.e || 0; if (m.s > 0) d.pos++; else if (m.s < 0) d.neg++;
+      if (bi >= 0) d.series[bi]++;
     }
   }
   const ex = new Set(tokens((project ? project.title + ' ' + (project.terms || '') : '')).concat(['example']));
@@ -666,7 +753,7 @@ let abort = null;
 const S = {
   mode: 'boot', db: null, user: null, uid: null, sample: null, canWrite: true, canEdit: false,
   projects: new Map(), currentId: null, parts: [], mentions: [], readout: null, draft: null,
-  filters: { range: 'all', platform: '', sent: '', q: '' }, kw: 'words', postLimit: 20,
+  filters: { range: 'all', platform: '', sent: '', driver: '', q: '' }, kw: 'words', postLimit: 20,
   unsubParts: null, unsubReadout: null, names: {}, pending: null, local: new Map(), busy: false, autoExample: true, sentSource: 'estimated', streaming: false, loadingParts: false, lastRun: '', siteLoaded: new Set(),
 };
 const current = () => S.currentId === EXAMPLE.id ? EXAMPLE : S.projects.get(S.currentId) || null;
@@ -772,18 +859,91 @@ function timeChart(host, A, kind, project) {
 function barList(host, items, onPick, tipFor) {
   host.textContent = '';
   if (!items.length) { host.append(h('p', { class: 'sub', text: 'Nothing to show for these filters.' })); return; }
-  const max = items[0].n;
+  const max = Math.max(1, ...items.map(it => it.n));
   for (const it of items) {
     const row = h('button', { type: 'button', class: 'bar-row' },
       h('span', { class: 'bar-name', text: it.k }),
-      h('span', { class: 'bar-track' }, h('span', { class: 'bar-fill', style: `display:block;width:${Math.max(1, it.n / max * 100)}%` })),
-      h('span', { class: 'bar-val', text: fmt(it.n) }));
+      h('span', { class: 'bar-track' }, h('span', { class: 'bar-fill' + (it.muted ? ' muted' : ''), style: `display:block;width:${Math.max(1, it.n / max * 100)}%` })),
+      h('span', { class: 'bar-val', text: it.label || fmt(it.n) }));
     const open = () => { const r = row.getBoundingClientRect(); showTip(r.left + r.width / 2, r.top, t => tipFor(t, it)); };
     row.addEventListener('pointerenter', open); row.addEventListener('focus', open);
     row.addEventListener('pointerleave', hideTip); row.addEventListener('blur', hideTip);
     row.addEventListener('click', () => { hideTip(); onPick(it); });
     host.append(row);
   }
+}
+
+function miniChart(host, A, d, max, project, width) {
+  const B = A.buckets, n = B.length;
+  const W = Math.max(200, width || host.clientWidth), H = 104, m = { l: 28, r: 8, t: 8, b: 20 };
+  const pw = W - m.l - m.r, ph = H - m.t - m.b, slot = pw / n;
+  const X = i => m.l + (i + 0.5) * slot, Y = v => m.t + ph - v / max * ph;
+  const svg = s('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H, tabindex: 0, role: 'img', 'aria-label': d.k + ' posts over time. Use the arrow keys to read each period.' });
+  for (const v of [0, max]) {
+    svg.append(s('line', { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), stroke: v ? 'var(--line)' : 'var(--axis)', 'stroke-width': 1 }));
+    svg.append(s('text', { x: m.l - 6, y: Y(v) + 4, 'text-anchor': 'end' }, compact(v)));
+  }
+  svg.append(s('text', { x: m.l, y: H - 5, 'text-anchor': 'start' }, fShort(B[0].t)));
+  svg.append(s('text', { x: W - m.r, y: H - 5, 'text-anchor': 'end' }, fShort(B[n - 1].t)));
+  const rel = project && project.release ? Date.parse(project.release + 'T00:00:00Z') / 1000 : null;
+  if (rel !== null && rel >= B[0].t && rel < B[n - 1].t + A.step * DAY) { const x = X(Math.floor((rel - B[0].t) / (A.step * DAY))); svg.append(s('line', { x1: x, x2: x, y1: m.t, y2: Y(0), stroke: 'var(--ink-2)', 'stroke-width': 1 })); }
+  const pts = d.series.map((v, i) => `${X(i).toFixed(1)},${Y(v).toFixed(1)}`);
+  svg.append(s('path', { d: `M${X(0)},${Y(0)}L${pts.join('L')}L${X(n - 1)},${Y(0)}Z`, fill: 'var(--series-wash)' }));
+  svg.append(s('path', { d: 'M' + pts.join('L'), fill: 'none', stroke: 'var(--series)', 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+  const cross = s('line', { y1: m.t, y2: Y(0), stroke: 'var(--muted)', 'stroke-width': 1, visibility: 'hidden' });
+  svg.append(cross);
+  let at = -1;
+  const show = i => {
+    at = Math.max(0, Math.min(n - 1, i));
+    cross.setAttribute('x1', X(at)); cross.setAttribute('x2', X(at)); cross.setAttribute('visibility', 'visible');
+    const box = svg.getBoundingClientRect();
+    showTip(box.left + X(at) * box.width / W, box.top + Y(d.series[at]) * box.height / H, t => t.append(h('div', { class: 't-head', text: bucketLabel(B[at], A.step, true) }),
+      tipRow(d.k, fmt(d.series[at]), 'series'), tipRow('Share of that period', pct(d.series[at], B[at].n) + '%')));
+  };
+  const off = () => { cross.setAttribute('visibility', 'hidden'); hideTip(); };
+  svg.addEventListener('pointermove', e => { const box = svg.getBoundingClientRect(); show(Math.floor(((e.clientX - box.left) * W / box.width - m.l) / slot)); });
+  svg.addEventListener('pointerleave', off); svg.addEventListener('blur', off);
+  svg.addEventListener('focus', () => show(at < 0 ? n - 1 : at));
+  svg.addEventListener('keydown', e => { if (e.key === 'ArrowLeft') { show(at - 1); e.preventDefault(); } else if (e.key === 'ArrowRight') { show(at + 1); e.preventDefault(); } });
+  host.append(svg);
+}
+function renderDrivers(A, project) {
+  const net = d => pct(d.pos, d.n) - pct(d.neg, d.n), signed = v => (v > 0 ? '+' : '') + v;
+  const ranked = [...A.drivers].sort((a, b) => b.n - a.n);
+  $('drvSub').textContent = A.n ? 'A post can count toward more than one driver. ' + pct(A.none.n, A.n) + '% match none.' : '';
+  const items = ranked.map(d => ({ k: d.k, n: d.n, d, label: fmt(d.n) + ' · ' + pct(d.n, A.n) + '%' }))
+    .concat([{ k: A.none.k, n: A.none.n, d: A.none, muted: true, key: NONE, label: fmt(A.none.n) + ' · ' + pct(A.none.n, A.n) + '%' }]);
+  barList($('drvBars'), A.n ? items : [], it => { const v = it.key || it.k; S.filters.driver = S.filters.driver === v ? '' : v; S.postLimit = 20; refresh(); },
+    (t, it) => t.append(h('div', { class: 't-head', text: it.k }), tipRow('Posts', fmt(it.n)), tipRow('Share of posts', pct(it.n, A.n) + '%'),
+      tipRow('Engagement per post', it.n ? (it.d.eng / it.n).toFixed(1) : '0'), tipRow('Positive', pct(it.d.pos, it.n) + '%', 'pos'), tipRow('Negative', pct(it.d.neg, it.n) + '%', 'neg')));
+  const grid = $('drvTime'); grid.textContent = '';
+  if (A.buckets.length > 1) {
+    const max = niceMax(Math.max(1, ...ranked.map(d => Math.max(...d.series))));
+    const boxes = ranked.map(d => {
+      let pi = 0; d.series.forEach((v, i) => { if (v > d.series[pi]) pi = i; });
+      const box = h('div', { class: 'chart' });
+      grid.append(h('div', { class: 'multi' }, h('div', { class: 'multi-head' }, h('b', { text: d.k }), h('span', { text: d.n ? 'Peak ' + fmt(d.series[pi]) + ', ' + fShort(A.buckets[pi].t) : 'No posts' })), box));
+      return box;
+    });
+    const widths = boxes.map(box => box.clientWidth);  // measure after every cell is in the grid, before any chart is drawn
+    ranked.forEach((d, i) => miniChart(boxes[i], A, d, max, project, widths[i]));
+  }
+  const tb = h('table', null, h('thead', null, h('tr', null, ...['Driver', 'Posts', 'Share of posts', 'Engagement per post', 'Positive', 'Negative', 'Net sentiment'].map(t => h('th', { text: t })))));
+  const body = h('tbody');
+  for (const d of ranked.concat([A.none])) body.append(h('tr', null, ...[d.k, fmt(d.n), pct(d.n, A.n) + '%', d.n ? (d.eng / d.n).toFixed(1) : '0', pct(d.pos, d.n) + '%', pct(d.neg, d.n) + '%', signed(net(d))].map(v => h('td', { text: v }))));
+  tb.append(body); $('drvTable').textContent = ''; $('drvTable').append(tb);
+  const lists = $('drvLists'); lists.textContent = '';
+  const src = driversOf(project);
+  for (const name of Object.keys(src).slice(0, 12)) lists.append(h('div', null, h('b', { text: name + ': ' }), (src[name] || []).join(', ')));
+  const canEdit = !isExample() && S.canWrite && (S.mode === 'db' || S.mode === 'local');
+  $('drvEditor').hidden = !canEdit;
+  if (canEdit && document.activeElement !== $('drvEdit') && $('drvEdit').dataset.key !== driverKey + S.currentId) {
+    $('drvEdit').value = Object.keys(src).map(name => name + ': ' + (src[name] || []).join(', ')).join('\n');
+    $('drvEdit').dataset.key = driverKey + S.currentId;
+  }
+  $('drvHelp').textContent = S.mode === 'site' ? 'A post is tagged when it contains one of these words or phrases; a * matches any ending. To change the lists, edit "drivers" in config.json in the repository.'
+    : canEdit ? 'A post is tagged when it contains one of these words or phrases. Changes apply to everyone who opens this project.'
+    : 'A post is tagged when it contains one of these words or phrases; a * matches any ending.';
 }
 
 /* ---------- Rendering ---------- */
@@ -823,9 +983,15 @@ function renderFilters(all, project) {
   for (const p of plats) fp.append(h('option', { value: p, text: p }));
   fp.value = S.filters.platform;
   $('fSent').value = S.filters.sent;
+  const fd = $('fDriver');
+  if (S.filters.driver && S.filters.driver !== NONE && !compiled.some(d => d.name === S.filters.driver)) S.filters.driver = '';
+  fd.textContent = ''; fd.append(h('option', { value: '', text: 'Any driver' }));
+  for (const d of compiled) fd.append(h('option', { value: d.name, text: d.name }));
+  fd.append(h('option', { value: NONE, text: 'No driver matched' }));
+  fd.value = S.filters.driver;
   if (document.activeElement !== $('fQuery')) $('fQuery').value = S.filters.q;
   const f = S.filters;
-  $('fClear').hidden = !(f.range !== 'all' || f.platform || f.sent !== '' || f.q);
+  $('fClear').hidden = !(f.range !== 'all' || f.platform || f.sent !== '' || f.driver || f.q);
 }
 function sentimentMethod(list) {
   return S.sentSource === 'export' ? 'Sentiment labels come from your export.' : S.sentSource === 'mixed' ? 'Some sentiment labels come from your export; the rest are estimated from wording.' : 'Sentiment is estimated from the wording of each post with a simple word list. Treat it as a rough guide; it misses sarcasm.';
@@ -849,6 +1015,7 @@ function refresh() {
   renderUploads();
   if ($('dash').hidden) return;
 
+  syncDrivers(project);
   renderFilters(all, project);
   const list = applyFilters(all, S.filters, project);
   const host = $('volChart');
@@ -874,6 +1041,7 @@ function refresh() {
   for (const b of A.buckets) body.append(h('tr', null, h('td', { text: bucketLabel(b, A.step, true) }), ...[b.n, b.pos, b.neu, b.neg].map(v => h('td', { text: fmt(v) }))));
   tb.append(body); $('volTable').textContent = ''; $('volTable').append(tb);
 
+  renderDrivers(A, project);
   barList($('platBars'), A.platformList.slice(0, 10), it => { S.filters.platform = S.filters.platform === it.k ? '' : it.k; S.postLimit = 20; refresh(); },
     (t, it) => t.append(h('div', { class: 't-head', text: it.k }), tipRow('Posts', fmt(it.n)), tipRow('Share', pct(it.n, A.n) + '%')));
   $('kwWords').setAttribute('aria-pressed', S.kw === 'words'); $('kwPhrases').setAttribute('aria-pressed', S.kw === 'phrases');
@@ -891,7 +1059,8 @@ function renderPosts(list) {
     host.append(h('div', { class: 'post' },
       h('div', { class: 'post-meta' }, h('b', { text: m.p }), h('span', { text: m.t !== null ? fLong(m.t) : 'No date' }), m.a ? h('span', { text: m.a }) : null,
         h('span', null, h('i', { class: 'dot', style: `background: var(--${cls})` }), m.s > 0 ? 'Positive' : m.s < 0 ? 'Negative' : 'Neutral'),
-        m.e ? h('span', { text: fmt(m.e) + (m.e === 1 ? ' engagement' : ' engagements') }) : null),
+        m.e ? h('span', { text: fmt(m.e) + (m.e === 1 ? ' engagement' : ' engagements') }) : null,
+        driverTags(m).length ? h('span', { text: driverTags(m).map(i => compiled[i].name).join(', ') }) : null),
       h('div', { class: 'post-text', text: m.x }),
       m.u ? h('a', { href: m.u, target: '_blank', rel: 'noopener noreferrer', text: 'Open the post' }) : null));
   }
@@ -970,7 +1139,7 @@ function selectProject(id) {
   if (S.unsubReadout) { S.unsubReadout(); S.unsubReadout = null; }
   if (abort) abort.abort();
   S.currentId = id; S.parts = []; S.mentions = []; S.readout = null; S.draft = null; S.streaming = false;
-  S.filters = { range: 'all', platform: '', sent: '', q: '' }; S.postLimit = 20; S.loadingParts = false;
+  S.filters = { range: 'all', platform: '', sent: '', driver: '', q: '' }; S.postLimit = 20; S.loadingParts = false;
   $('addDataPanel').hidden = true; resetMapping();
   if (id === EXAMPLE.id) { S.mentions = exampleMentions(); S.sentSource = 'estimated'; }
   else if (id && S.mode === 'local') { S.parts = S.local.get(id) || []; rebuildMentions(); }
@@ -1117,6 +1286,7 @@ function scopeLabel() {
   if (f.range !== 'all') bits.push($('fRange').selectedOptions[0].textContent.toLowerCase());
   if (f.platform) bits.push(f.platform);
   if (f.sent !== '') bits.push(['negative', 'neutral', 'positive'][+f.sent + 1] + ' only');
+  if (f.driver) bits.push(f.driver === NONE ? 'posts matching no driver' : 'driver: ' + f.driver);
   if (f.q) bits.push('mentioning "' + f.q + '"');
   return bits.length ? bits.join(', ') : 'all posts';
 }
@@ -1136,6 +1306,7 @@ function buildPrompt(A, list, project) {
     'Release date: ' + (project.release || 'not given'),
     'Scope of this readout: ' + scopeLabel() + '; ' + A.n + ' posts' + (A.minT !== null ? ' from ' + fLong(A.minT) + ' to ' + fLong(A.maxT) : ''),
     'Sentiment: ' + pct(A.pos, A.n) + '% positive, ' + pct(A.neu, A.n) + '% neutral, ' + pct(A.neg, A.n) + '% negative. ' + sentimentMethod(list),
+    'Drivers (keyword tags; a post can match several): ' + A.drivers.map(d => d.k + ' ' + d.n + ' (' + pct(d.n, A.n) + '%)').join(', ') + '; no driver matched ' + A.none.n,
     'Platforms: ' + A.platformList.map(p => p.k + ' ' + p.n).join(', '),
     'Most used words: ' + A.words.map(w => w.k + ' ' + w.n).join(', '),
     'Most used phrases: ' + A.phrases.map(w => w.k + ' ' + w.n).join(', '),
@@ -1228,9 +1399,10 @@ const setFilter = (k, v) => { S.filters[k] = v; S.postLimit = 20; refresh(); };
 $('fRange').addEventListener('change', e => setFilter('range', e.target.value));
 $('fPlatform').addEventListener('change', e => setFilter('platform', e.target.value));
 $('fSent').addEventListener('change', e => setFilter('sent', e.target.value));
+$('fDriver').addEventListener('change', e => setFilter('driver', e.target.value));
 let qTimer = 0;
 $('fQuery').addEventListener('input', e => { clearTimeout(qTimer); const v = e.target.value.trim(); qTimer = setTimeout(() => setFilter('q', v), 220); });
-$('fClear').addEventListener('click', () => { S.filters = { range: 'all', platform: '', sent: '', q: '' }; S.postLimit = 20; $('fQuery').value = ''; refresh(); });
+$('fClear').addEventListener('click', () => { S.filters = { range: 'all', platform: '', sent: '', driver: '', q: '' }; S.postLimit = 20; $('fQuery').value = ''; refresh(); });
 $('kwWords').addEventListener('click', () => { S.kw = 'words'; refresh(); });
 $('kwPhrases').addEventListener('click', () => { S.kw = 'phrases'; refresh(); });
 $('postSort').addEventListener('change', () => { S.postLimit = 20; renderPosts(lastList); });
@@ -1250,6 +1422,18 @@ $('readoutCopy').addEventListener('click', async () => {
   const shown = S.draft || S.readout, st = $('readoutStatus'); if (!shown) return;
   try { await navigator.clipboard.writeText(shown.text); st.className = 'status'; st.textContent = 'Copied.'; }
   catch (e) { const r = document.createRange(); r.selectNodeContents($('readoutBody')); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); st.className = 'status'; st.textContent = 'Selected. Copy it with your keyboard.'; }
+});
+$('drvSave').addEventListener('click', async () => {
+  const st = $('drvStatus'), project = current(), drivers = parseDriverText($('drvEdit').value);
+  st.className = 'status';
+  if (!project || !Object.keys(drivers).length) { st.className = 'status err'; st.textContent = 'Write at least one line as "Name: word, word".'; return; }
+  st.textContent = 'Saving';
+  try {
+    if (S.mode === 'db') await S.db.doc('projects/' + S.currentId).update({ drivers });
+    project.drivers = drivers; $('drvEdit').dataset.key = '';
+    st.textContent = 'Saved. Every post has been re-tagged.';
+  } catch (e) { st.className = 'status err'; st.textContent = dbMessage(e); }
+  refresh();
 });
 let lastW = 0;
 new ResizeObserver(() => { const w = $('volChart').clientWidth; if (w && Math.abs(w - lastW) > 4) { lastW = w; refreshSoon(); } }).observe($('volChart'));
@@ -1281,7 +1465,7 @@ async function enterSite() {
     if (!list.length) return false;
     for (const p of list) {
       const terms = (p.queries || []).concat((p.hashtags || []).map(t => '#' + String(t).replace(/^#/, ''))).join(', ');
-      S.projects.set(p.slug, { id: p.slug, title: String(p.title || p.slug), terms, release: /^\d{4}-\d{2}-\d{2}$/.test(p.release || '') ? p.release : '', at: '' });
+      S.projects.set(p.slug, { id: p.slug, title: String(p.title || p.slug), terms, release: /^\d{4}-\d{2}-\d{2}$/.test(p.release || '') ? p.release : '', at: '', drivers: p.drivers });
       S.local.set(p.slug, []);
     }
     try { const run = await (await fetch('data/last-run.json', { cache: 'no-store' })).json(); S.lastRun = String(run.ran_at || ''); } catch (e) { /* optional */ }
