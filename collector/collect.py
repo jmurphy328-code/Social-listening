@@ -68,11 +68,12 @@ def http(url, *, params=None, headers=None, data=None, json_body=None, timeout=3
             with urllib.request.urlopen(req, timeout=timeout) as res:
                 return json.loads(res.read().decode("utf-8"))
         except urllib.error.HTTPError as err:
-            detail = err.read().decode("utf-8", "replace")[:240].replace("\n", " ")
+            detail = err.read().decode("utf-8", "replace")
+            detail = "" if detail.lstrip().startswith("<") else detail[:240].replace("\n", " ")  # drop HTML error pages
             if err.code in (429, 500, 502, 503, 504) and attempt < 2:
                 time.sleep(5 * (attempt + 1))
                 continue
-            raise SourceError(f"{host} answered {err.code}: {detail}") from None
+            raise SourceError(f"{host} answered {err.code}" + (f": {detail}" if detail else "")) from None
         except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as err:
             if attempt < 2:
                 time.sleep(3)
