@@ -25,6 +25,35 @@ X, Instagram, Facebook and TikTok are not here. None offers free keyword search 
 - `data/<project>/posts.jsonl` is the full history the collector merges into.
 - `data/last-run.json` says what the latest run found from each source, and why any source was skipped.
 
+## Add student files
+
+Posts your students collect themselves go in `data/<project>/uploads/`. Every CSV saved there is loaded by the site for everyone, next to the automatic collection.
+
+1. Start from `templates/student-posts-template.csv`.
+2. On GitHub, open `data/the-odyssey/uploads/` and choose **Add file > Upload files**.
+3. A minute or two later the site shows the new posts.
+
+Students need to be added to the repository as collaborators (**Settings > Collaborators**) to upload, or they can send their files to the owner to upload.
+
+### The columns
+
+| Column | What goes in it | Needed? |
+|---|---|---|
+| `date` | When the post was published, as `YYYY-MM-DD` (a time can follow) | Yes, for every time chart |
+| `platform` | TikTok, Instagram, X, YouTube, Reddit and so on | Yes, unless `url` is filled in |
+| `author` | The account that posted | Recommended |
+| `text` | The full text of the post or comment, in one cell | Yes |
+| `engagement` | One number: likes, comments and shares added up | Recommended |
+| `url` | The link to the post | Recommended |
+| `driver` | The research area: Cast, Director, How it was made, Marketing, Social media usage | Recommended |
+| `collected_by` | The student's name | Optional, not shown on the site |
+
+- One post per row. No blank rows, totals or notes inside the data.
+- `driver` is the student's own tag for the post and is kept alongside the keyword tags. Use the area names above so everyone's posts land in the same groups. For a post that fits two areas, separate them with a semicolon: `Marketing; Social media usage`.
+- If a file has separate likes, comments and shares columns instead of `engagement`, leave them as they are; the site adds them up.
+- A `sentiment` column (positive, neutral or negative) is used if present. Otherwise the site estimates it.
+- The same post in two files is counted once, as long as its date, author and text match.
+
 ## Change what it tracks
 
 Edit `config.json` (the pencil icon on GitHub). Saving the file starts a new collection straight away.

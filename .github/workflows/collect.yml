@@ -40,6 +40,9 @@ jobs:
           MASTODON_TOKEN: ${{ secrets.MASTODON_TOKEN }}
         run: python3 collector/collect.py
 
+      - name: List the files in each uploads folder
+        run: python3 collector/manifest.py
+
       - name: Save the results to the repository
         run: |
           git config user.name "github-actions[bot]"

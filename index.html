@@ -469,7 +469,8 @@ function guessColumns(headers) {
   return {
     text: pick([/^(full.?text|text|body|content|message|caption)$/, /^(text.?display|text.?original|comment.?text|review.?text|review|post|mention|snippet|tweet|comment|description|desc|selftext)$/, /text|content|message|snippet|caption/, /^title$/], /type|html|lang|color|length|count/),
     date: pick([/^(date|created.?at|created.?utc|created|published|published.?at|timestamp|date.?time|posted|posted.?at|post.?date|create.?time|create.?time.?iso|taken.?at|indexed.?at|upload.?date)$/, /date|created|publish|time/], /update|edit|duration|zone|scrap|crawl|fetch/),
-    platform: pick([/^(source|platform|network|channel|site|domain|category|media.?type|source.?type|page.?type)$/, /source|platform|network/], /url|id$/),
+    platform: pick([/^(source|platform|network|channel|site|domain|media.?type|source.?type|page.?type)$/, /source|platform|network/], /url|id$/),
+    driver: pick([/^(driver|drivers|research.?area|area|tag|tags|theme|code|coding|label)$/, /^(category|categories|topic)$/]),
     author: pick([/^(author|username|user.?name|screen.?name|handle|owner.?username|unique.?id|author.?name|author.?display.?name|channel.?title)$/, /author.*\.(name|handle|username|nick.?name|unique.?id)$/, /^(user|owner|account|channel)\.(name|handle|username|screen.?name|login)$/, /author|account/, /^user$|^name$|profile/], /url|avatar|image|(^|[._])id$|(user|author|owner|channel).?id$|did$|link|verified|count|description|bio/),
     sentiment: pick([/sentiment|tone|polarity/]),
     url: pick([/^(url|link|permalink|post.?url|web.?video.?url|tweet.?url|comment.?url)$/, /^uri$/, /url|link/], /avatar|image|thumb|photo|pic|cover|music|profile|display|media|download|author|user|channel|input/),
@@ -582,13 +583,14 @@ function buildMentions(table, map) {
     if (seen.has(key)) { info.dupes++; continue; }
     seen.add(key);
     let plat = bsky ? 'Bluesky' : platformOf(col(r, map.platform), url);
+    const g = String(col(r, map.driver) === undefined || col(r, map.driver) === null ? '' : col(r, map.driver)).replace(/\s+/g, ' ').trim().slice(0, 120);
     if ((plat === 'Unknown' || plat === 'Web') && map.hint) plat = map.hint;
-    out.push({ t, p: plat, a: author, x, s: sv, e: Math.round(e), u: /^https?:\/\//i.test(url) ? url.slice(0, 300) : '', key });
+    out.push({ t, p: plat, a: author, x, s: sv, e: Math.round(e), u: /^https?:\/\//i.test(url) ? url.slice(0, 300) : '', g, key });
   }
   return { mentions: out, info };
 }
-const packRow = m => [m.t, m.p, m.a, m.x, m.s, m.e, m.u];
-const unpackRow = r => ({ t: r[0], p: r[1], a: r[2], x: r[3], s: r[4], e: r[5] || 0, u: r[6] || '', key: r[0] + '|' + r[2] + '|' + String(r[3]).slice(0, 90) });
+const packRow = m => (m.g ? [m.t, m.p, m.a, m.x, m.s, m.e, m.u, m.g] : [m.t, m.p, m.a, m.x, m.s, m.e, m.u]);
+const unpackRow = r => ({ t: r[0], p: r[1], a: r[2], x: r[3], s: r[4], e: r[5] || 0, u: r[6] || '', g: r[7] || '', key: r[0] + '|' + r[2] + '|' + String(r[3]).slice(0, 90) });
 
 /* ---------- Drivers: keyword tags that sort posts into the research areas ---------- */
 const DEFAULT_DRIVERS = {
@@ -611,16 +613,30 @@ function compileDrivers(project) {
     }).filter(Boolean),
   }));
 }
-let compiled = [], driverVer = 0, driverKey = '';
-function syncDrivers(project) {
-  const key = JSON.stringify(driversOf(project));
-  if (key !== driverKey) { driverKey = key; compiled = compileDrivers(project); driverVer++; }
+/* A post's own category (from the file it came in) counts as a hand tag. Names are matched loosely,
+   so "unique marketing" joins Marketing and "how the movie was made" joins How it was made. */
+const NAME_NOISE = new Set('the a an of it was is and movie film unique usage use'.split(' '));
+const stemKey = name => tokens(name).filter(w => !NAME_NOISE.has(w)).map(w => w.slice(0, 4)).sort().join(' ');
+const manualNames = m => (m.g ? String(m.g).split(/[;,|]/).map(t => t.trim()).filter(Boolean).slice(0, 6) : []);
+let compiled = [], driverVer = 0, driverKey = '', syncedList = null, manualSeen = new Map(), stemIndex = new Map();
+function syncDrivers(project, all) {
+  if (all !== syncedList) {
+    syncedList = all; manualSeen = new Map();
+    for (const m of all) for (const nm of manualNames(m)) { const k = stemKey(nm); if (k && !manualSeen.has(k)) manualSeen.set(k, nm); }
+  }
+  const key = JSON.stringify(driversOf(project)) + '|' + [...manualSeen.keys()].join(',');
+  if (key === driverKey) return;
+  driverKey = key; compiled = compileDrivers(project); driverVer++;
+  stemIndex = new Map(compiled.map((d, i) => [stemKey(d.name), i]));
+  for (const [k, nm] of manualSeen) if (!stemIndex.has(k) && compiled.length < 16) { stemIndex.set(k, compiled.length); compiled.push({ name: nm.slice(0, 40), terms: [], manual: true }); }
 }
 function driverTags(m) {
   if (m._dv !== driverVer) {
     if (!m._nt) m._nt = ' ' + tokens(m.x).join(' ') + ' ';
-    m._dr = [];
-    compiled.forEach((d, i) => { if (d.terms.some(t => m._nt.includes(t))) m._dr.push(i); });
+    m._kw = []; m._hd = [];
+    compiled.forEach((d, i) => { if (d.terms.some(t => m._nt.includes(t))) m._kw.push(i); });
+    for (const nm of manualNames(m)) { const i = stemIndex.get(stemKey(nm)); if (i !== undefined && !m._hd.includes(i)) m._hd.push(i); }
+    m._dr = [...new Set(m._kw.concat(m._hd))].sort((a, b) => a - b);
     m._dv = driverVer;
   }
   return m._dr;
@@ -684,7 +700,8 @@ function analyze(list, project, maxBuckets) {
       b.n++; if (m.s > 0) b.pos++; else if (m.s < 0) b.neg++; else b.neu++;
     }
   }
-  const blank = k => ({ k, n: 0, pos: 0, neg: 0, eng: 0, series: A.buckets.map(() => 0) });
+  const blank = k => ({ k, n: 0, pos: 0, neg: 0, eng: 0, hand: 0, auto: 0, both: 0, series: A.buckets.map(() => 0) });
+  A.handTagged = 0;
   A.drivers = compiled.map(d => blank(d.name));
   A.none = blank('No driver matched');
   for (const m of list) {
@@ -693,6 +710,8 @@ function analyze(list, project, maxBuckets) {
       d.n++; d.eng += m.e || 0; if (m.s > 0) d.pos++; else if (m.s < 0) d.neg++;
       if (bi >= 0) d.series[bi]++;
     }
+    if (m._hd.length) A.handTagged++;
+    for (const i of tg) { const h_ = m._hd.includes(i), k_ = m._kw.includes(i); if (h_) A.drivers[i].hand++; if (k_) A.drivers[i].auto++; if (h_ && k_) A.drivers[i].both++; }
   }
   const ex = new Set(tokens((project ? project.title + ' ' + (project.terms || '') : '')).concat(['example']));
   const uni = new Map(), bi = new Map();
@@ -910,7 +929,7 @@ function miniChart(host, A, d, max, project, width) {
 function renderDrivers(A, project) {
   const net = d => pct(d.pos, d.n) - pct(d.neg, d.n), signed = v => (v > 0 ? '+' : '') + v;
   const ranked = [...A.drivers].sort((a, b) => b.n - a.n);
-  $('drvSub').textContent = A.n ? 'A post can count toward more than one driver. ' + pct(A.none.n, A.n) + '% match none.' : '';
+  $('drvSub').textContent = A.n ? 'A post can count toward more than one driver. ' + pct(A.none.n, A.n) + '% match none.' + (A.handTagged ? ' ' + fmt(A.handTagged) + ' carry a hand tag.' : '') : '';
   const items = ranked.map(d => ({ k: d.k, n: d.n, d, label: fmt(d.n) + ' · ' + pct(d.n, A.n) + '%' }))
     .concat([{ k: A.none.k, n: A.none.n, d: A.none, muted: true, key: NONE, label: fmt(A.none.n) + ' · ' + pct(A.none.n, A.n) + '%' }]);
   barList($('drvBars'), A.n ? items : [], it => { const v = it.key || it.k; S.filters.driver = S.filters.driver === v ? '' : v; S.postLimit = 20; refresh(); },
@@ -928,13 +947,16 @@ function renderDrivers(A, project) {
     const widths = boxes.map(box => box.clientWidth);  // measure after every cell is in the grid, before any chart is drawn
     ranked.forEach((d, i) => miniChart(boxes[i], A, d, max, project, widths[i]));
   }
-  const tb = h('table', null, h('thead', null, h('tr', null, ...['Driver', 'Posts', 'Share of posts', 'Engagement per post', 'Positive', 'Negative', 'Net sentiment'].map(t => h('th', { text: t })))));
+  const hand = A.handTagged > 0;
+  const tb = h('table', null, h('thead', null, h('tr', null, ...['Driver', 'Posts', 'Share of posts', 'Engagement per post', 'Positive', 'Negative', 'Net sentiment'].concat(hand ? ['Tagged by hand', 'By keywords', 'By both'] : []).map(t => h('th', { text: t })))));
   const body = h('tbody');
-  for (const d of ranked.concat([A.none])) body.append(h('tr', null, ...[d.k, fmt(d.n), pct(d.n, A.n) + '%', d.n ? (d.eng / d.n).toFixed(1) : '0', pct(d.pos, d.n) + '%', pct(d.neg, d.n) + '%', signed(net(d))].map(v => h('td', { text: v }))));
+  for (const d of ranked.concat([A.none])) body.append(h('tr', null, ...[d.k, fmt(d.n), pct(d.n, A.n) + '%', d.n ? (d.eng / d.n).toFixed(1) : '0', pct(d.pos, d.n) + '%', pct(d.neg, d.n) + '%', signed(net(d))]
+    .concat(hand ? (d === A.none ? ['', '', ''] : [fmt(d.hand), fmt(d.auto), fmt(d.both)]) : []).map(v => h('td', { text: v }))));
   tb.append(body); $('drvTable').textContent = ''; $('drvTable').append(tb);
   const lists = $('drvLists'); lists.textContent = '';
   const src = driversOf(project);
   for (const name of Object.keys(src).slice(0, 12)) lists.append(h('div', null, h('b', { text: name + ': ' }), (src[name] || []).join(', ')));
+  for (const d of compiled) if (d.manual) lists.append(h('div', null, h('b', { text: d.name + ': ' }), 'tagged by hand in the files; no word list yet'));
   const canEdit = !isExample() && S.canWrite && (S.mode === 'db' || S.mode === 'local');
   $('drvEditor').hidden = !canEdit;
   if (canEdit && document.activeElement !== $('drvEdit') && $('drvEdit').dataset.key !== driverKey + S.currentId) {
@@ -953,7 +975,7 @@ function setNotice() {
   let msg = '';
   if (S.mode === 'boot') msg = '';
   else if (isExample()) msg = 'This is example data: invented posts about a made-up film. Create a project to add your own.';
-  else if (S.mode === 'site') msg = 'Posts here are collected automatically once a day' + (S.lastRun ? ', most recently on ' + fLong(Date.parse(S.lastRun) / 1000) : '') + '. Files you add yourself stay only until you close the page.';
+  else if (S.mode === 'site') msg = 'Posts here come from the daily collection' + (S.lastRun ? ' (most recently ' + fLong(Date.parse(S.lastRun) / 1000) + ')' : '') + ' and from files saved in the project\'s uploads folder. Files you add on this page stay only until you close it.';
   else if (S.mode === 'local') msg = 'This view cannot save. Anything you add stays only until you close the page.';
   else if (!S.canWrite) msg = 'You have view-only access. Ask the owner for Contributor access to add data.';
   el.textContent = msg; el.hidden = !msg;
@@ -1015,7 +1037,7 @@ function refresh() {
   renderUploads();
   if ($('dash').hidden) return;
 
-  syncDrivers(project);
+  syncDrivers(project, all);
   renderFilters(all, project);
   const list = applyFilters(all, S.filters, project);
   const host = $('volChart');
@@ -1101,12 +1123,12 @@ function renderUploads() {
   if (!list.length) host.append(h('p', { class: 'sub', style: 'padding: 8px 0', text: isExample() ? 'The example has no uploads. Create a project to add your own.' : 'Nothing uploaded yet.' }));
   for (const g of list) {
     const btn = h('button', { type: 'button', class: 'btn quiet', text: 'Remove' });
-    btn.hidden = !S.canWrite || g.upload === 'collected';
+    btn.hidden = !S.canWrite || g.upload === 'collected' || String(g.upload).startsWith('file:');
     btn.addEventListener('click', () => {
       if (btn.dataset.sure) { btn.disabled = true; btn.textContent = 'Removing'; removeUpload(g); }
       else { btn.dataset.sure = '1'; btn.textContent = 'Remove ' + fmt(g.n) + ' posts?'; setTimeout(() => { if (btn.isConnected && !btn.disabled) { delete btn.dataset.sure; btn.textContent = 'Remove'; } }, 4000); }
     });
-    host.append(h('div', { class: 'upload-row' }, h('span', null, h('span', { text: g.label || 'Upload' }), ' ', h('span', { class: 'meta', text: fmt(g.n) + (g.n === 1 ? ' post · ' : ' posts · ') + (g.at ? fLong(Date.parse(g.at) / 1000) : '') + (g.by ? ' · ' + (S.names[g.by] || 'a teammate') : '') })), btn));
+    host.append(h('div', { class: 'upload-row' }, h('span', null, h('span', { text: g.label || 'Upload' }), ' ', h('span', { class: 'meta', text: [fmt(g.n) + (g.n === 1 ? ' post' : ' posts'), g.at ? fLong(Date.parse(g.at) / 1000) : '', g.by ? (S.names[g.by] || 'a teammate') : ''].filter(Boolean).join(' · ') })), btn));
   }
   $('dangerRow').hidden = isExample() || !current() || !(S.mode === 'local' || S.canEdit);
 }
@@ -1220,7 +1242,7 @@ async function removeUpload(g) {
 }
 
 /* ---------- Add data flow ---------- */
-const FIELDS = [['text', 'Post text', 'Required'], ['date', 'Date posted', 'Needed for the time charts'], ['platform', 'Platform or source', 'Worked out from the link if left empty'], ['author', 'Author', ''], ['sentiment', 'Sentiment', 'Estimated from wording if left empty'], ['engagement', 'Engagement', 'Likes, shares, comments'], ['url', 'Link to the post', '']];
+const FIELDS = [['text', 'Post text', 'Required'], ['date', 'Date posted', 'Needed for the time charts'], ['platform', 'Platform or source', 'Worked out from the link if left empty'], ['author', 'Author', ''], ['sentiment', 'Sentiment', 'Estimated from wording if left empty'], ['driver', 'Research area', 'Your own category for each post, if the file has one'], ['engagement', 'Engagement', 'Likes, shares, comments'], ['url', 'Link to the post', '']];
 function resetMapping() { S.pending = null; $('mapping').hidden = true; $('mapStatus').textContent = ''; $('mapStatus').className = 'status'; $('fileStatus').textContent = 'Or drop a CSV, Excel or JSON file here.'; $('fileStatus').className = 'status'; $('fileInput').value = ''; }
 function previewMapping() {
   const P = S.pending; if (!P) return;
@@ -1240,6 +1262,9 @@ function previewMapping() {
   if (built.info.noText) bits.push(fmt(built.info.noText) + ' with no text');
   if (built.info.badDate) bits.push(fmt(built.info.badDate) + ' with a date that could not be read');
   if (fresh.length > capped.length) bits.push('only the first 20,000 are added at a time, so split larger exports');
+  const areas = new Map();
+  for (const m of capped) for (const nm of manualNames(m)) areas.set(nm, (areas.get(nm) || 0) + 1);
+  if (areas.size) bits.push('research areas found: ' + [...areas.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([k, n]) => k + ' ' + fmt(n)).join(', '));
   st.textContent = bits.join(' · ') + '.';
   add.disabled = !capped.length; add.textContent = capped.length ? 'Add ' + fmt(capped.length) + ' posts' : 'Add posts';
   for (const m of capped.slice(0, 3)) pv.append(h('div', { text: (m.t !== null ? fLong(m.t) : 'No date') + ' · ' + m.p + ' · ' + (m.s > 0 ? 'Positive' : m.s < 0 ? 'Negative' : 'Neutral') + ' · ' + m.x.slice(0, 140) }));
@@ -1452,6 +1477,25 @@ async function loadSiteData(id) {
       S.local.set(id, [part].concat((S.local.get(id) || []).filter(p => p.upload !== 'collected')));
     }
   } catch (e) { /* no collected file yet; the project opens empty */ }
+  try {
+    const res = await fetch('data/' + id + '/files.json', { cache: 'no-store' });
+    const files = res.ok ? ((await res.json()).files || []).slice(0, 80) : [];
+    for (const f of files) {
+      const name = String(f.name || ''), key = 'file:' + name;
+      const part = { id: key, upload: key, label: name, by: '', at: '', n: 0, fromExport: 0, estimated: 0, rows: [] };
+      try {
+        const fr = await fetch('data/' + id + '/uploads/' + encodeURIComponent(name), { cache: 'no-store' });
+        if (!fr.ok) throw new Error('missing');
+        const text = await fr.text();
+        const table = /\.(json|jsonl|ndjson)$/i.test(name) ? parseJSONTable(text) : toTable(parseCSV(text));
+        const hinted = PLATFORMS.slice(0, 11).find(([re]) => re.test(name.replace(/[^a-z0-9.]+/gi, ' ')));
+        const built = buildMentions(table, Object.assign(guessColumns(table.headers), { hint: hinted ? hinted[1] : '' }));
+        Object.assign(part, { n: built.mentions.length, fromExport: built.info.fromExport, estimated: built.info.estimated, rows: built.mentions.map(packRow) });
+        if (!built.mentions.length) part.label = name + ' (no posts found; check the column names)';
+      } catch (e) { part.label = name + ' (could not be read)'; }
+      S.local.set(id, (S.local.get(id) || []).filter(p => p.upload !== key).concat([part]));
+    }
+  } catch (e) { /* no uploads folder for this project */ }
   S.loadingParts = false;
   if (S.currentId === id) { S.parts = S.local.get(id) || []; rebuildMentions(); }
   refreshSoon();
