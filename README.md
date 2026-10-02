@@ -1,6 +1,10 @@
-# Social listening collector
+# Social listening
 
-This repository gathers public posts about a film or show from the free sources, once a day, and saves them as a file you can add to the Film Listening Desk.
+This repository gathers public posts about a film or show from the free sources, once a day, and shows them on a public website: the Film Listening Desk.
+
+**The site:** https://jmurphy328-code.github.io/Social-listening/
+
+The site reads the collected posts straight from this repository, so it updates after every collection run. Anyone with the link can see it. Files a visitor adds on the site stay in their own browser until they close the page; nothing is uploaded.
 
 ## What it collects
 
@@ -17,7 +21,7 @@ X, Instagram, Facebook and TikTok are not here. None offers free keyword search 
 
 ## Where the data lands
 
-- `data/<project>/posts.csv` is the file to add to the Desk. Download it, open the Desk, choose **Add data**, and pick the file. The Desk skips posts it already has, so adding the same file again is safe.
+- `data/<project>/posts.csv` is what the site shows. You can also download it and open it in Excel.
 - `data/<project>/posts.jsonl` is the full history the collector merges into.
 - `data/last-run.json` says what the latest run found from each source, and why any source was skipped.
 
@@ -44,6 +48,7 @@ Edit `config.json` (the pencil icon on GitHub). Saving the file starts a new col
 - `queries` are the searches run on YouTube, Reddit and Bluesky. Put a title in quotes and add a word that separates it from other things with the same name.
 - `hashtags` are followed on Mastodon and Bluesky. Leave off the `#`.
 - `since` is the earliest date to keep, as `YYYY-MM-DD`.
+- `release` is optional: the release or premiere date, as `YYYY-MM-DD`. The site marks it on the volume chart.
 - `lookback_days` is how far back each daily run looks once a project has data.
 - Add a second project by adding another block inside `projects`.
 - To turn a source off for a project, add `"skip_sources": ["reddit"]`.
@@ -70,6 +75,10 @@ Keys go in **Settings > Secrets and variables > Actions > New repository secret*
 - YouTube's free quota is 10,000 units a day. A search costs 100 units, so each query in `queries` uses about 100 units per run plus a few for comments. Two or three queries per project is comfortable.
 - Each run fetches a bounded amount per source (a few hundred to a few thousand posts). It is a sample of the conversation, not a census.
 - The collected posts include public usernames. If you would rather the data not be public, make this repository private in **Settings > General**. The daily run still fits within the free allowance for private repositories.
+
+## The site's file
+
+`index.html` is the whole site in one file. It needs GitHub Pages turned on: **Settings > Pages > Deploy from a branch > main, / (root)**.
 
 ## Check the code
 
