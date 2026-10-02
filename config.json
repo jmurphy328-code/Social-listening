@@ -1,0 +1,12 @@
+{
+  "lookback_days": 14,
+  "projects": [
+    {
+      "slug": "the-odyssey",
+      "title": "The Odyssey",
+      "queries": ["\"The Odyssey\" Nolan", "\"The Odyssey\" movie"],
+      "hashtags": ["TheOdyssey"],
+      "since": "2026-07-01"
+    }
+  ]
+}
