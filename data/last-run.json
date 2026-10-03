@@ -1,10 +1,10 @@
 {
-  "ran_at": "2026-10-02T12:57:33Z",
+  "ran_at": "2026-10-03T09:29:25Z",
   "projects": [
     {
       "slug": "the-odyssey",
       "title": "The Odyssey",
-      "since": "2026-09-18T12:57:33Z",
+      "since": "2026-09-19T09:29:25Z",
       "sources": {
         "youtube": {
           "status": "skipped",
@@ -21,10 +21,10 @@
         "mastodon": {
           "status": "ok",
           "found": 40,
-          "new": 0
+          "new": 2
         }
       },
-      "total": 201
+      "total": 203
     }
   ]
 }
