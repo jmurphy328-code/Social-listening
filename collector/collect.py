@@ -300,6 +300,8 @@ def collect_mastodon(project, since_iso, limits, first_run):
             max_id = statuses[-1].get("id")
             if to_iso(statuses[-1].get("created_at")) < since_iso:
                 break
+            if first_run:
+                time.sleep(0.3)  # a deep pass asks for many pages; stay well inside the server's rate limit
     return found
 
 
@@ -331,7 +333,7 @@ def save_posts(folder, posts):
 
 
 PLATFORM_NAMES = {"youtube": "YouTube", "reddit": "Reddit", "bluesky": "Bluesky", "mastodon": "Mastodon"}
-DEEP_PAGES = {"mastodon_pages": 8, "bluesky_pages": 4, "reddit_pages": 2}
+DEEP_PAGES = {"mastodon_pages": 30, "bluesky_pages": 4, "reddit_pages": 2}
 
 
 def run_project(project, config, now):

@@ -160,11 +160,11 @@ class Runs(unittest.TestCase):
             with mock.patch.dict(collect.SOURCES, only_masto):
                 collect.run_project(PROJECT, {}, now)
                 collect.run_project(PROJECT, {}, now)
-            self.assertEqual(seen, [("Mastodon", "2026-09-01T00:00:00Z", True, 40), ("Mastodon", "2026-09-06T00:00:00Z", False, 5)])
+            self.assertEqual(seen, [("Mastodon", "2026-09-01T00:00:00Z", True, 150), ("Mastodon", "2026-09-06T00:00:00Z", False, 5)])
             del seen[:]
             with mock.patch.dict(collect.SOURCES, {**only_masto, "youtube": spy("YouTube")}):
                 collect.run_project(PROJECT, {}, now)  # a source whose key was just added starts from the beginning
-            self.assertEqual(seen, [("YouTube", "2026-09-01T00:00:00Z", True, 40), ("Mastodon", "2026-09-06T00:00:00Z", False, 5)])
+            self.assertEqual(seen, [("YouTube", "2026-09-01T00:00:00Z", True, 150), ("Mastodon", "2026-09-06T00:00:00Z", False, 5)])
             del seen[:]
             with mock.patch.dict(collect.SOURCES, only_masto):
                 collect.run_project({**PROJECT, "since": "2026-07-01"}, {}, now)  # an earlier start date triggers one deep pass
