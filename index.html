@@ -307,6 +307,11 @@ textarea { font: inherit; font-size: 13px; color: inherit; width: 100%; border: 
         <div class="sov" id="cmpSov"></div>
         <div class="panel-head">
           <div class="legend" id="cmpLegend"></div>
+          <div class="seg" role="group" aria-label="What to compare">
+            <button type="button" id="cmpPosts" aria-pressed="true">Posts</button>
+            <button type="button" id="cmpViews" aria-pressed="false">Pageviews</button>
+            <button type="button" id="cmpGross" aria-pressed="false">Box office</button>
+          </div>
           <div class="seg" role="group" aria-label="Line up the two films">
             <button type="button" id="cmpByRelease" aria-pressed="true">Days from release</button>
             <button type="button" id="cmpByDate" aria-pressed="false">Calendar dates</button>
@@ -336,6 +341,13 @@ textarea { font: inherit; font-size: 13px; color: inherit; width: 100%; border: 
         <p class="sub" id="momHelp"></p>
       </div>
       <details class="data"><summary>Show the numbers</summary><div class="table-scroll" id="volTable"></div></details>
+    </section>
+
+    <section class="panel" id="attPanel" hidden>
+      <div class="panel-head"><h2>Attention and box office</h2><span class="sub" id="attSub"></span></div>
+      <div class="chart" id="attChart"></div>
+      <div class="spikes" id="attTiming"></div>
+      <p class="sub">Each line has its own scale; compare when they rise and fall, not their heights. Matching timing is not proof of cause, and one release-week peak can drive most of a match.</p>
     </section>
 
     <section class="panel">
@@ -974,7 +986,7 @@ const S = {
   mode: 'boot', db: null, user: null, uid: null, sample: null, canWrite: true, canEdit: false,
   projects: new Map(), currentId: null, parts: [], mentions: [], readout: null, draft: null,
   filters: blankFilters(), kw: 'words', postLimit: 20,
-  unsubParts: null, unsubReadout: null, names: {}, pending: null, local: new Map(), busy: false, autoExample: true, sentSource: 'estimated', streaming: false, loadingParts: false, lastRun: '', siteLoaded: new Set(), siteLoading: new Set(), compareId: undefined, cmpAlign: 'release', voiceSort: 'n', cmp: new Map(), cmpLoading: new Set(),
+  unsubParts: null, unsubReadout: null, names: {}, pending: null, local: new Map(), busy: false, autoExample: true, sentSource: 'estimated', streaming: false, loadingParts: false, lastRun: '', siteLoaded: new Set(), siteLoading: new Set(), compareId: undefined, cmpAlign: 'release', cmpMeasure: 'posts', series: new Map(), voiceSort: 'n', cmp: new Map(), cmpLoading: new Set(),
 };
 const current = () => S.currentId === EXAMPLE.id ? EXAMPLE : S.projects.get(S.currentId) || null;
 const isExample = () => S.currentId === EXAMPLE.id;
@@ -1184,7 +1196,8 @@ function renderMoments(project, wide, marks) {
   const host = $('momTable'); host.textContent = '';
   const link = (text, fn) => { const b = h('button', { type: 'button', class: 'link', text }); b.addEventListener('click', fn); return b; };
   if (marks.length) {
-    const tb = h('table', { class: 'mom-table' }, h('thead', null, h('tr', null, ...['', 'Date', 'Key moment', '7 days before', '7 days after', 'Change', ''].map(t => h('th', { text: t })))));
+    const views = (S.series.get(S.currentId) || {}).views, hasViews = !!(views && views.size);
+    const tb = h('table', { class: 'mom-table' }, h('thead', null, h('tr', null, ...['', 'Date', 'Key moment', 'Posts, 7 days before', 'Posts, 7 days after', 'Change in posts'].concat(hasViews ? ['Change in pageviews'] : [], ['']).map(t => h('th', { text: t })))));
     const body = h('tbody');
     for (const e of marks) {
       const d = Math.floor(e.t / DAY), inside = have && d >= minD && d <= maxD, full = inside && d - 7 >= minD;
@@ -1192,6 +1205,12 @@ function renderMoments(project, wide, marks) {
       const change = !inside ? 'Outside the dates collected' : !full ? 'No full week before it' : before ? (after >= before ? '+' : '') + Math.round((after - before) / before * 100) + '%' : after ? 'From nothing' : 'No posts';
       const row = h('tr', null, ...[String(e.num), fLong(e.t), e.label, full ? fmt(before) : '', inside ? fmt(after) : '', change].map(v => h('td', { text: v })));
       row.children[2].style.textAlign = 'left'; row.children[2].style.whiteSpace = 'normal'; row.children[1].style.textAlign = 'left';
+      if (hasViews) {
+        let vb = 0, va = 0, nb = 0, na = 0;
+        for (let k = d - 7; k < d; k++) if (views.has(k)) { vb += views.get(k); nb++; }
+        for (let k = d; k < d + 7; k++) if (views.has(k)) { va += views.get(k); na++; }
+        row.append(h('td', { text: nb === 7 && na === 7 && vb ? (va >= vb ? '+' : '') + Math.round((va - vb) / vb * 100) + '%' : 'No full weeks of pageviews' }));
+      }
       row.append(h('td', null, inside && before + after ? link('See posts', () => pickDays(d - 7, d + 7)) : null));
       body.append(row);
     }
@@ -1225,6 +1244,102 @@ function renderMoments(project, wide, marks) {
     $('momEdit').dataset.key = key;
   }
   $('momHelp').textContent = S.mode === 'site' ? 'Numbers on the chart mark these moments. To add or change them, edit "events" in config.json in the repository.' : marks.length ? 'Numbers on the chart mark these moments.' : '';
+}
+
+/* ---------- Attention and box office: daily series on the same timeline as the posts ---------- */
+const money = v => '$' + (v >= 1e9 ? (v / 1e9).toFixed(2) + 'B' : v >= 1e6 ? (v / 1e6).toFixed(v >= 1e7 ? 0 : 1) + 'M' : v >= 1e3 ? Math.round(v / 1e3) + 'K' : Math.round(v));
+function bestLag(a, b) {
+  /* Shift b against a by up to a week each way and return the shift where the two daily lines match best. */
+  let best = null;
+  for (let lag = -7; lag <= 7; lag++) {
+    const xs = [], ys = [];
+    for (const [d, v] of a) if (b.has(d + lag)) { xs.push(v); ys.push(b.get(d + lag)); }
+    if (xs.length < 28) continue;
+    const mx = xs.reduce((p, c) => p + c, 0) / xs.length, my = ys.reduce((p, c) => p + c, 0) / ys.length;
+    let sxy = 0, sxx = 0, syy = 0;
+    for (let i = 0; i < xs.length; i++) { sxy += (xs[i] - mx) * (ys[i] - my); sxx += (xs[i] - mx) * (xs[i] - mx); syy += (ys[i] - my) * (ys[i] - my); }
+    if (!sxx || !syy) continue;
+    const r = sxy / Math.sqrt(sxx * syy);
+    if (!best || r > best.r) best = { lag, r, days: xs.length };
+  }
+  return best;
+}
+function renderAttention(A, project, marks) {
+  const panel = $('attPanel'), ser = S.series.get(S.currentId);
+  if (!ser || (!ser.views.size && !ser.gross.size) || isExample()) { panel.hidden = true; return; }
+  panel.hidden = false;
+  const postDays = [...A.daily.keys()], pLo = postDays.length ? Math.min(...postDays) : null, pHi = postDays.length ? Math.max(...postDays) : null;
+  const posts = new Map();
+  if (pLo !== null) for (let d = pLo; d <= pHi; d++) posts.set(d, A.daily.get(d) || 0);
+  const rows = [{ k: 'Posts', map: posts, show: fmt, tick: compact }, { k: 'Wikipedia pageviews', map: ser.views, show: fmt, tick: compact }, { k: 'Domestic box office', map: ser.gross, show: money, tick: money }].filter(r => r.map.size);
+  let lo = Infinity, hi = -Infinity;
+  if (S.filters.range === 'all' || pLo === null) for (const r of rows) for (const d of r.map.keys()) { if (d < lo) lo = d; if (d > hi) hi = d; }
+  else { lo = pLo; hi = pHi; }
+  $('attSub').textContent = fLong(lo * DAY) + ' to ' + fLong(hi * DAY);
+  const host = $('attChart'); host.textContent = '';
+  const W = Math.max(280, host.clientWidth), band = 92, gap = 38, m = { l: 52, r: 12, t: 26, b: 24 };
+  const roundUp = v => { const p = Math.pow(10, Math.max(0, Math.floor(Math.log10(Math.max(1, v))) - 1)); return Math.ceil(v / p) * p; };
+  const H = m.t + rows.length * band + (rows.length - 1) * gap + m.b, pw = W - m.l - m.r, n = hi - lo + 1;
+  const X = d => m.l + (n === 1 ? pw / 2 : (d - lo) / (n - 1) * pw);
+  const svg = s('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H, tabindex: 0, role: 'img', 'aria-label': 'Posts, Wikipedia pageviews and box office by day. Use the arrow keys to read each day.' });
+  const bottom = m.t + rows.length * band + (rows.length - 1) * gap;
+  rows.forEach((r, i) => {
+    const y0 = m.t + i * (band + gap), vals = [];
+    for (const [d, v] of r.map) if (d >= lo && d <= hi) vals.push(v);
+    const max = roundUp(Math.max(1, ...vals)), Y = v => y0 + band - v / max * band;
+    for (const v of [0, max]) {
+      svg.append(s('line', { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), stroke: v ? 'var(--line)' : 'var(--axis)', 'stroke-width': 1 }));
+      svg.append(s('text', { x: m.l - 6, y: Y(v) + 4, 'text-anchor': 'end' }, r.tick(v)));
+    }
+    svg.append(s('text', { x: m.l, y: y0 - 12, class: 'strong' }, r.k));
+    let line = '', area = '', open = false, startX = 0, lastX = 0;
+    const close = () => { if (open) { area += `L${lastX.toFixed(1)},${Y(0).toFixed(1)}L${startX.toFixed(1)},${Y(0).toFixed(1)}Z`; open = false; } };
+    for (let d = lo; d <= hi; d++) {
+      if (!r.map.has(d)) { close(); continue; }
+      const x = X(d), y = Y(r.map.get(d));
+      if (!open) { line += `M${x.toFixed(1)},${y.toFixed(1)}`; area += `M${x.toFixed(1)},${y.toFixed(1)}`; startX = x; open = true; }
+      else { line += `L${x.toFixed(1)},${y.toFixed(1)}`; area += `L${x.toFixed(1)},${y.toFixed(1)}`; }
+      lastX = x;
+    }
+    close();
+    svg.append(s('path', { d: area, fill: 'var(--series-wash)' }));
+    svg.append(s('path', { d: line, fill: 'none', stroke: 'var(--series)', 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+  });
+  for (const e of marks) { const d = Math.floor(e.t / DAY); if (d >= lo && d <= hi) for (let i = 0; i < rows.length; i++) { const y0 = m.t + i * (band + gap); svg.append(s('line', { x1: X(d), x2: X(d), y1: y0, y2: y0 + band, stroke: 'var(--ink-2)', 'stroke-width': 1, 'stroke-opacity': 0.4 })); } }
+  const ticks = Math.min(n, Math.max(2, Math.floor(pw / 110))), used = new Set();
+  for (let k = 0; k < ticks; k++) {
+    const d = lo + (ticks === 1 ? 0 : Math.round(k * (n - 1) / (ticks - 1)));
+    if (used.has(d)) continue; used.add(d);
+    svg.append(s('text', { x: X(d), y: H - 6, 'text-anchor': k === 0 ? 'start' : k === ticks - 1 ? 'end' : 'middle' }, n > 300 ? dLong.format(new Date(d * DAY * 1000)).replace(/ \d+,/, '') : fShort(d * DAY)));
+  }
+  const cross = s('line', { y1: m.t, y2: bottom, stroke: 'var(--muted)', 'stroke-width': 1, visibility: 'hidden' });
+  svg.append(cross);
+  let at = -1;
+  const show = d => {
+    at = Math.max(lo, Math.min(hi, d));
+    cross.setAttribute('x1', X(at)); cross.setAttribute('x2', X(at)); cross.setAttribute('visibility', 'visible');
+    const box = svg.getBoundingClientRect(), named = marks.filter(e => Math.floor(e.t / DAY) === at);
+    showTip(box.left + X(at) * box.width / W, box.top + m.t * box.height / H, t => {
+      t.append(h('div', { class: 't-head', text: fLong(at * DAY) + (named.length ? ' · ' + named.map(e => e.label).join(', ') : '') }));
+      for (const r of rows) t.append(tipRow(r.k, r.map.has(at) ? r.show(r.map.get(at)) : 'no data'));
+    });
+  };
+  const off = () => { cross.setAttribute('visibility', 'hidden'); hideTip(); };
+  svg.addEventListener('pointermove', e => { const box = svg.getBoundingClientRect(); show(lo + Math.round(((e.clientX - box.left) * W / box.width - m.l) / pw * (n - 1))); });
+  svg.addEventListener('pointerleave', off); svg.addEventListener('blur', off);
+  svg.addEventListener('focus', () => show(at < 0 ? hi : at));
+  svg.addEventListener('keydown', e => { if (e.key === 'ArrowLeft') { show(at - 1); e.preventDefault(); } else if (e.key === 'ArrowRight') { show(at + 1); e.preventDefault(); } });
+  host.append(svg);
+  const timing = $('attTiming'); timing.textContent = '';
+  const say = (name, other, x) => {
+    if (!x) return;
+    const n = Math.abs(x.lag), days = n === 1 ? '1 day' : n + ' days';
+    const text = x.r < 0.3 ? 'no clear match in timing.'
+      : (x.lag === 0 ? 'they rise and fall on the same days' : name.toLowerCase() + ' move about ' + days + (x.lag > 0 ? ' ahead of ' : ' behind ') + other) + ' (match ' + x.r.toFixed(2) + ' out of 1, over ' + fmt(x.days) + ' days).';
+    timing.append(h('div', null, h('b', { text: name + ' and ' + other + ': ' }), text));
+  };
+  if (posts.size) { say('Posts', 'pageviews', bestLag(posts, ser.views)); say('Posts', 'box office', bestLag(posts, ser.gross)); }
+  say('Pageviews', 'box office', bestLag(ser.views, ser.gross));
 }
 
 /* ---------- Emotions ---------- */
@@ -1379,20 +1494,20 @@ function compareMentions(id) {
   S.cmp.set(id, { parts, sig, mentions });
   return mentions;
 }
-function compareChart(host, A, B, pa, pb, byRelease) {
+function compareChart(host, A, B, pa, pb, byRelease, da = A.daily, db = B.daily, showValue = fmt, tick = compact) {
   host.textContent = '';
   const relDay = p => Math.floor(Date.parse(p.release + 'T00:00:00Z') / 1000 / DAY);
   const offA = byRelease ? relDay(pa) : 0, offB = byRelease ? relDay(pb) : 0;
   let x0 = Infinity, x1 = -Infinity;
-  for (const d of A.daily.keys()) { x0 = Math.min(x0, d - offA); x1 = Math.max(x1, d - offA); }
-  for (const d of B.daily.keys()) { x0 = Math.min(x0, d - offB); x1 = Math.max(x1, d - offB); }
-  if (x1 < x0) { host.append(h('p', { class: 'sub', text: 'No dated posts to compare in this view.' })); return; }
+  for (const d of da.keys()) { x0 = Math.min(x0, d - offA); x1 = Math.max(x1, d - offA); }
+  for (const d of db.keys()) { x0 = Math.min(x0, d - offB); x1 = Math.max(x1, d - offB); }
+  if (x1 < x0) { host.append(h('p', { class: 'sub', text: 'Nothing dated to compare in this view.' })); return; }
   const W = Math.max(280, host.clientWidth), H = 240, ends = W >= 640, m = { l: 46, r: ends ? 170 : 12, t: 22, b: 28 };
   const pw = W - m.l - m.r, ph = H - m.t - m.b;
   const step = [1, 7, 30, 90].find(k => Math.ceil((x1 - x0 + 1) / k) <= Math.max(8, Math.floor(pw / 5))) || 90;
   const start = Math.floor(x0 / step) * step, n = Math.floor((x1 - start) / step) + 1, slot = pw / n;
   const fill = (daily, off) => { const arr = new Array(n).fill(0); for (const [d, v] of daily) arr[Math.floor((d - off - start) / step)] += v; return arr; };
-  const sa = fill(A.daily, offA), sb = fill(B.daily, offB);
+  const sa = fill(da, offA), sb = fill(db, offB);
   const max = niceMax(Math.max(1, ...sa, ...sb));
   const X = i => m.l + (i + 0.5) * slot, Y = v => m.t + ph - v / max * ph;
   const dayName = v => v === 0 ? 'Release day' : 'Day ' + (v > 0 ? '+' : '−') + Math.abs(v);
@@ -1401,7 +1516,7 @@ function compareChart(host, A, B, pa, pb, byRelease) {
   for (let k = 0; k <= 4; k++) {
     const v = max * k / 4, y = Y(v);
     svg.append(s('line', { x1: m.l, x2: W - m.r, y1: y, y2: y, stroke: k ? 'var(--line)' : 'var(--axis)', 'stroke-width': 1 }));
-    svg.append(s('text', { x: m.l - 8, y: y + 4, 'text-anchor': 'end' }, compact(v)));
+    svg.append(s('text', { x: m.l - 8, y: y + 4, 'text-anchor': 'end' }, tick(v)));
   }
   const ticks = Math.min(n, Math.max(2, Math.floor(pw / 100))), used = new Set();
   for (let k = 0; k < ticks; k++) {
@@ -1434,7 +1549,7 @@ function compareChart(host, A, B, pa, pb, byRelease) {
     at = Math.max(0, Math.min(n - 1, i));
     cross.setAttribute('x1', X(at)); cross.setAttribute('x2', X(at)); cross.setAttribute('visibility', 'visible');
     const box = svg.getBoundingClientRect();
-    showTip(box.left + X(at) * box.width / W, box.top + Y(Math.max(sa[at], sb[at])) * box.height / H, t => t.append(h('div', { class: 't-head', text: label(at, true) }), tipRow(pa.title, fmt(sa[at]), 'series'), tipRow(pb.title, fmt(sb[at]), 'series-2')));
+    showTip(box.left + X(at) * box.width / W, box.top + Y(Math.max(sa[at], sb[at])) * box.height / H, t => t.append(h('div', { class: 't-head', text: label(at, true) }), tipRow(pa.title, showValue(sa[at]), 'series'), tipRow(pb.title, showValue(sb[at]), 'series-2')));
   };
   const off = () => { cross.setAttribute('visibility', 'hidden'); hideTip(); };
   svg.addEventListener('pointermove', e => { const box = svg.getBoundingClientRect(); show(Math.floor(((e.clientX - box.left) * W / box.width - m.l) / slot)); });
@@ -1470,12 +1585,24 @@ function renderCompare(A, project, maxBuckets) {
   const both = !!(project.release && other.release), byRelease = both && S.cmpAlign === 'release';
   $('cmpByRelease').disabled = !both;
   $('cmpByRelease').setAttribute('aria-pressed', byRelease); $('cmpByDate').setAttribute('aria-pressed', !byRelease);
-  compareChart($('cmpChart'), A, B, project, other, byRelease);
+  const serA = S.series.get(project.id) || { views: new Map(), gross: new Map() }, serB = S.series.get(other.id) || { views: new Map(), gross: new Map() };
+  const can = { posts: true, views: serA.views.size > 0 && serB.views.size > 0, gross: serA.gross.size > 0 && serB.gross.size > 0 };
+  if (!can[S.cmpMeasure]) S.cmpMeasure = 'posts';
+  for (const [id, key, what] of [['cmpPosts', 'posts', ''], ['cmpViews', 'views', 'Wikipedia pageviews'], ['cmpGross', 'gross', 'box office']]) {
+    $(id).setAttribute('aria-pressed', S.cmpMeasure === key); $(id).disabled = !can[key];
+    $(id).title = can[key] ? '' : 'Needs ' + what + ' for both films';
+  }
+  if (S.cmpMeasure === 'posts') compareChart($('cmpChart'), A, B, project, other, byRelease);
+  else compareChart($('cmpChart'), A, B, project, other, byRelease, serA[S.cmpMeasure], serB[S.cmpMeasure], S.cmpMeasure === 'gross' ? money : fmt, S.cmpMeasure === 'gross' ? money : compact);
+  const sumOf = map => { let n = 0; for (const v of map.values()) n += v; return n; };
+  const peakOf = map => { let best = null; for (const [d, v] of map) if (!best || v > best[1]) best = [d, v]; return best ? fmt(best[1]) + ' on ' + fShort(best[0] * DAY) : 'no data'; };
   const net = X => { const v = pct(X.pos, X.n) - pct(X.neg, X.n); return (v > 0 ? '+' : '') + v; };
   const share = (list, name, X) => { const d = list.find(o => o.k === name); return d ? pct(d.n, X.n) + '%' : 'not tracked'; };
   const union = (a, b) => [...new Set(a.map(o => o.k).concat(b.map(o => o.k)))];
   const rows = [['Posts', fmt(A.n), fmt(B.n)], ['Share of voice', pct(A.n, total) + '%', pct(B.n, total) + '%'], ['People posting', fmt(A.authors.size), fmt(B.authors.size)],
     ['Engagement per post', A.n ? (A.eng / A.n).toFixed(1) : '0', B.n ? (B.eng / B.n).toFixed(1) : '0'], ['Net sentiment', net(A), net(B)],
+    ...(serA.views.size || serB.views.size ? [['Attention and box office'], ['Wikipedia pageviews, total', serA.views.size ? compact(sumOf(serA.views)) : 'no data', serB.views.size ? compact(sumOf(serB.views)) : 'no data'],
+      ['Wikipedia pageviews, peak day', peakOf(serA.views), peakOf(serB.views)], ['Domestic box office on file', serA.gross.size ? money(sumOf(serA.gross)) : 'no file yet', serB.gross.size ? money(sumOf(serB.gross)) : 'no file yet']] : []),
     ['Drivers, as a share of posts'], ...union(A.drivers, B.drivers).map(k => [k, share(A.drivers, k, A), share(B.drivers, k, B)]),
     ['Emotions, as a share of posts'], ...union(A.emotions, B.emotions).map(k => [k, share(A.emotions, k, A), share(B.emotions, k, B)]),
     ['Who is talking, as a share of posts'], ...['owned', 'press', 'audience'].map(k => [VOICE_NAMES[k], pct(A.voices[k].n, A.n) + '%', pct(B.voices[k].n, B.n) + '%'])];
@@ -1583,6 +1710,7 @@ function refresh() {
   timeChart(host, A, 'vol', project, marks);
   timeChart($('sentChart'), A, 'sent', project, marks);
   renderMoments(project, S.filters.range === 'all' ? list : applyFilters(all, Object.assign({}, S.filters, { range: 'all' }), project), marks);
+  renderAttention(A, project, marks);
   renderCompare(A, project, maxBuckets);
   renderEmotions(A); renderVoices(A); renderMap(A);
   const lg = $('sentLegend'); lg.textContent = '';
@@ -1965,6 +2093,9 @@ $('fDriver').addEventListener('change', e => setFilter('driver', e.target.value)
 $('fEmotion').addEventListener('change', e => setFilter('emotion', e.target.value));
 $('fVoice').addEventListener('change', e => setFilter('voice', e.target.value));
 $('cmpSelect').addEventListener('change', e => { S.compareId = e.target.value; refresh(); });
+$('cmpPosts').addEventListener('click', () => { S.cmpMeasure = 'posts'; refresh(); });
+$('cmpViews').addEventListener('click', () => { S.cmpMeasure = 'views'; refresh(); });
+$('cmpGross').addEventListener('click', () => { S.cmpMeasure = 'gross'; refresh(); });
 $('cmpByRelease').addEventListener('click', () => { S.cmpAlign = 'release'; refresh(); });
 $('cmpByDate').addEventListener('click', () => { S.cmpAlign = 'date'; refresh(); });
 $('voiceByPosts').addEventListener('click', () => { S.voiceSort = 'n'; refresh(); });
@@ -2052,6 +2183,21 @@ async function loadSiteData(id) {
       S.local.set(id, (S.local.get(id) || []).filter(p => p.upload !== key).concat([part]));
     }
   } catch (e) { /* no uploads folder for this project */ }
+  const series = { views: new Map(), gross: new Map() };
+  for (const [key, file] of [['views', 'pageviews.csv'], ['gross', 'boxoffice.csv']]) {
+    try {
+      const res = await fetch('data/' + id + '/' + file, { cache: 'no-store' });
+      if (!res.ok) continue;
+      const table = toTable(parseCSV(await res.text())), low = table.headers.map(x => x.toLowerCase().trim());
+      const di = low.indexOf('date'), vi = low.indexOf(key);
+      if (di < 0 || vi < 0) continue;
+      for (const row of table.rows) {
+        const t = parseDate(row[di], false), v = Number(String(row[vi]).replace(/[$, ]/g, ''));
+        if (t !== null && Number.isFinite(v)) series[key].set(Math.floor(t / DAY), v);
+      }
+    } catch (e) { /* this project has no such file */ }
+  }
+  S.series.set(id, series);
   S.siteLoading.delete(id);
   if (S.currentId === id) { S.loadingParts = false; S.parts = S.local.get(id) || []; rebuildMentions(); }
   refreshSoon();

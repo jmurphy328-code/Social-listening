@@ -23,6 +23,8 @@ X, Instagram, Facebook and TikTok are not here. None offers free keyword search 
 
 - `data/<project>/posts.csv` is what the site shows. You can also download it and open it in Excel.
 - `data/<project>/posts.jsonl` is the full history the collector merges into.
+- `data/<project>/pageviews.csv` is the film's daily English Wikipedia pageviews, fetched automatically. It is a measure of attention that does not depend on which platforms were collected.
+- `data/<project>/boxoffice.csv` is the film's daily domestic box office. Nothing fetches this; add the file by hand with the columns `date,gross` (a `theaters` column is optional). Use one row per day, dates as `YYYY-MM-DD`, and leave out a separate preview-night row if that money is already counted in opening day.
 - `data/last-run.json` says what the latest run found from each source, and why any source was skipped.
 
 ## Add student files
@@ -78,6 +80,7 @@ Edit `config.json` (the pencil icon on GitHub). Saving the file starts a new col
 - `hashtags` are followed on Mastodon and Bluesky. Leave off the `#`.
 - `since` is the earliest date to keep, as `YYYY-MM-DD`.
 - `release` is optional: the release or premiere date, as `YYYY-MM-DD`. The site marks it on the volume chart.
+- `wikipedia` is the title of the film's English Wikipedia article, as it appears in the page address, for example `The_Odyssey_(2026_film)`. With it set, the collector fetches daily pageviews.
 - `drivers` are the word lists the site uses to tag each post by research area (cast, director, how it was made, marketing). A post is tagged when it contains one of the words or phrases, and can carry more than one tag. End a word with `*` to match any ending (`trailer*` matches trailer and trailers). Add, rename or remove drivers freely, up to 12. Hashtags are matched as one word, so add `mattdamon` as well as `matt damon`.
 - `events` are the campaign's key moments, each as `{"date": "2026-07-06", "label": "World premiere, London"}`. The site numbers them on the volume chart and shows how the conversation changed in the week after each one. The release date is added for you.
 - `voices` sorts accounts into groups. `"owned"` lists the studio's and film's official account names; an account whose name contains one of them counts as Studio and official. Add `"press"` to replace the built-in list of press and media names. Everyone else counts as Audience.
