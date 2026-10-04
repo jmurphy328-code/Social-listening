@@ -1,5 +1,5 @@
 {
-  "ran_at": "2026-10-04T16:17:20Z",
+  "ran_at": "2026-10-04T17:30:30Z",
   "projects": [
     {
       "slug": "the-odyssey",
@@ -20,8 +20,13 @@
         },
         "mastodon": {
           "status": "ok",
-          "found": 2311,
-          "new": 711
+          "found": 40,
+          "new": 0
+        },
+        "wikipedia": {
+          "status": "ok",
+          "found": 460,
+          "new": 460
         }
       },
       "total": 2311
@@ -47,6 +52,11 @@
           "status": "ok",
           "found": 40,
           "new": 0
+        },
+        "wikipedia": {
+          "status": "ok",
+          "found": 460,
+          "new": 460
         }
       },
       "total": 1493
