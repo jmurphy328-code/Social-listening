@@ -1,10 +1,10 @@
 {
-  "ran_at": "2026-10-04T15:57:49Z",
+  "ran_at": "2026-10-04T16:15:13Z",
   "projects": [
     {
       "slug": "the-odyssey",
       "title": "The Odyssey",
-      "since": "2026-09-20T15:57:49Z",
+      "since": "2025-07-01T00:00:00Z",
       "sources": {
         "youtube": {
           "status": "skipped",
@@ -20,11 +20,36 @@
         },
         "mastodon": {
           "status": "ok",
-          "found": 40,
-          "new": 0
+          "found": 1600,
+          "new": 1397
         }
       },
-      "total": 203
+      "total": 1600
+    },
+    {
+      "slug": "spider-man-brand-new-day",
+      "title": "Spider-Man: Brand New Day",
+      "since": "2025-07-01T00:00:00Z",
+      "sources": {
+        "youtube": {
+          "status": "skipped",
+          "note": "add the YOUTUBE_API_KEY secret"
+        },
+        "reddit": {
+          "status": "skipped",
+          "note": "add the REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET secrets"
+        },
+        "bluesky": {
+          "status": "skipped",
+          "note": "add the BLUESKY_HANDLE and BLUESKY_APP_PASSWORD secrets (search without a login was refused: public.api.bsky.app answered 403)"
+        },
+        "mastodon": {
+          "status": "ok",
+          "found": 1493,
+          "new": 1493
+        }
+      },
+      "total": 1493
     }
   ]
 }
