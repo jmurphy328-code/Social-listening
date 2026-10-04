@@ -100,6 +100,20 @@ class Sources(unittest.TestCase):
             with self.assertRaises(collect.Skip):
                 collect.collect_bluesky(PROJECT, SINCE, LIMITS, False)
 
+    def test_pageviews(self):
+        fake = router([("/pageviews/per-article/en.wikipedia/all-access/user/Test_Film_%282026_film%29/daily/2026090100/2026091900",
+                        {"items": [{"timestamp": "2026090200", "views": 120}, {"timestamp": "2026090100", "views": 80}, {"timestamp": "bad"}]})])
+        now = dt.datetime(2026, 9, 20, tzinfo=dt.timezone.utc)
+        with mock.patch.object(collect, "http", fake):
+            days = collect.collect_pageviews({"wikipedia": "Test Film (2026 film)"}, SINCE, now)
+            self.assertEqual(days, [("2026-09-01", 80), ("2026-09-02", 120)])
+            with self.assertRaises(collect.Skip):
+                collect.collect_pageviews({}, SINCE, now)
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(collect.save_pageviews(Path(tmp), days), 2)
+            self.assertEqual(collect.save_pageviews(Path(tmp), days + [("2026-09-03", 5)]), 1)
+            self.assertEqual((Path(tmp) / "pageviews.csv").read_text().splitlines()[:2], ["date,views", "2026-09-01,80"])
+
     def test_mastodon(self):
         fake = router([("/timelines/tag/TestFilm", lambda url, kw: [] if "max_id" in str(kw.get("params")) else [
             {"id": "9", "uri": "https://m.example/users/a/statuses/9", "url": "https://m.example/@a/9", "created_at": "2026-09-14T13:22:00.000Z", "account": {"acct": "a@m.example"}, "content": "<p>Great <a href='#'>#TestFilm</a></p>", "favourites_count": 2, "reblogs_count": 1, "replies_count": 0}])])

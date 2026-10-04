@@ -26,7 +26,7 @@ import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-USER_AGENT = "social-listening-collector/1.0 (academic research)"
+USER_AGENT = "social-listening-collector/1.0 (academic research; https://github.com/jmurphy328-code/Social-listening)"
 CSV_COLUMNS = ["date", "platform", "author", "text", "engagement", "url", "type", "query"]
 DEFAULT_LIMITS = {
     "youtube_videos_per_query": 25,
@@ -305,6 +305,36 @@ def collect_mastodon(project, since_iso, limits, first_run):
     return found
 
 
+# ---------- Wikipedia pageviews (a daily attention series, not posts) ----------
+
+def collect_pageviews(project, start_iso, now):
+    """Daily views of the film's English Wikipedia article, as [(YYYY-MM-DD, views)]. Free, no key."""
+    article = str(project.get("wikipedia", "")).strip().replace(" ", "_")
+    if not article:
+        raise Skip('add "wikipedia" (the article title) to the project in config.json')
+    first = (start_iso or "2015-07-01")[:10].replace("-", "")
+    last = (now - dt.timedelta(days=1)).strftime("%Y%m%d")
+    res = http("https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/en.wikipedia/all-access/user/"
+               + urllib.parse.quote(article, safe="") + f"/daily/{first}00/{last}00")
+    days = []
+    for item in res.get("items", []):
+        stamp = str(item.get("timestamp", ""))
+        if len(stamp) >= 8 and stamp[:8].isdigit():
+            days.append((f"{stamp[:4]}-{stamp[4:6]}-{stamp[6:8]}", number(item.get("views"))))
+    return sorted(days)
+
+
+def save_pageviews(folder, days):
+    folder.mkdir(parents=True, exist_ok=True)
+    path = folder / "pageviews.csv"
+    had = len(path.read_text(encoding="utf-8").splitlines()) - 1 if path.exists() else 0
+    with path.open("w", encoding="utf-8", newline="") as out:
+        writer = csv.writer(out)
+        writer.writerow(["date", "views"])
+        writer.writerows(days)
+    return max(0, len(days) - max(0, had))
+
+
 SOURCES = {"youtube": collect_youtube, "reddit": collect_reddit, "bluesky": collect_bluesky, "mastodon": collect_mastodon}
 
 
@@ -372,6 +402,13 @@ def run_project(project, config, now):
             report["sources"][name] = {"status": "skipped", "note": str(why)}
         except SourceError as err:
             report["sources"][name] = {"status": "error", "note": str(err)}
+    try:
+        days = collect_pageviews(project, start, now)
+        report["sources"]["wikipedia"] = {"status": "ok", "found": len(days), "new": save_pageviews(folder, days)}
+    except Skip as why:
+        report["sources"]["wikipedia"] = {"status": "skipped", "note": str(why)}
+    except SourceError as err:
+        report["sources"]["wikipedia"] = {"status": "error", "note": str(err)}
     save_posts(folder, posts)
     state_path.write_text(json.dumps({"since": start}) + "\n", encoding="utf-8")
     report["total"] = len(posts)
@@ -383,7 +420,9 @@ def summary_markdown(reports, ran_at):
     for rep in reports:
         lines += [f"### {rep['title']}: {rep['total']:,} posts on file", "", "| Source | Result |", "|---|---|"]
         for name, res in rep["sources"].items():
-            if res["status"] == "ok":
+            if res["status"] == "ok" and name == "wikipedia":
+                result = f"{res['found']:,} days of pageviews, {res['new']:,} new"
+            elif res["status"] == "ok":
                 result = f"{res['found']:,} found, {res['new']:,} new"
             else:
                 result = f"{res['status']}: {res['note']}"
