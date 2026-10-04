@@ -330,24 +330,39 @@ def save_posts(folder, posts):
         writer.writerows(ordered)
 
 
+PLATFORM_NAMES = {"youtube": "YouTube", "reddit": "Reddit", "bluesky": "Bluesky", "mastodon": "Mastodon"}
+DEEP_PAGES = {"mastodon_pages": 8, "bluesky_pages": 4, "reddit_pages": 2}
+
+
 def run_project(project, config, now):
+    """Collect one project.
+
+    A source gets a deep first pass, back to the project's "since" date with
+    larger page limits, when it has no posts on file yet or when "since" has
+    been moved earlier than last time. Otherwise it only looks back
+    "lookback_days".
+    """
     slug = project["slug"]
     if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,60}", slug):
         raise ValueError(f"project slug {slug!r} must be lowercase letters, digits and dashes")
     folder = ROOT / "data" / slug
     posts = load_posts(folder / "posts.jsonl")
-    first_run = not posts
     limits = {**DEFAULT_LIMITS, **config.get("limits", {})}
+    deep_limits = {**limits, **{key: limits[key] * times for key, times in DEEP_PAGES.items()}}
     start = to_iso(project.get("since", "") + "T00:00:00") if project.get("since") else ""
     lookback = to_iso((now - dt.timedelta(days=int(config.get("lookback_days", 14)))).timestamp())
-    since_iso = (start or lookback) if first_run else max(start, lookback)
-    report = {"slug": slug, "title": project.get("title", slug), "since": since_iso, "sources": {}}
+    state_path = folder / "state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8")) if state_path.exists() else {}
+    moved_earlier = bool(posts) and bool(start) and start < state.get("since", "9999")
+    report = {"slug": slug, "title": project.get("title", slug), "since": start or lookback, "sources": {}}
     for name, collect in SOURCES.items():
         if name in project.get("skip_sources", []):
             report["sources"][name] = {"status": "skipped", "note": "turned off in config.json"}
             continue
+        fresh = moved_earlier or not any(rec["platform"] == PLATFORM_NAMES.get(name) for rec in posts.values())
+        since_iso = (start or lookback) if fresh else max(start, lookback)
         try:
-            found = [rec for rec in collect(project, since_iso, limits, first_run) if keep(rec, start or "")]
+            found = [rec for rec in collect(project, since_iso, deep_limits if fresh else limits, fresh) if keep(rec, start or "")]
             new = sum(1 for rec in found if rec["id"] not in posts)
             posts.update({rec["id"]: rec for rec in found})
             report["sources"][name] = {"status": "ok", "found": len(found), "new": new}
@@ -356,6 +371,7 @@ def run_project(project, config, now):
         except SourceError as err:
             report["sources"][name] = {"status": "error", "note": str(err)}
     save_posts(folder, posts)
+    state_path.write_text(json.dumps({"since": start}) + "\n", encoding="utf-8")
     report["total"] = len(posts)
     return report
 

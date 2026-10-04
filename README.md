@@ -79,8 +79,11 @@ Edit `config.json` (the pencil icon on GitHub). Saving the file starts a new col
 - `since` is the earliest date to keep, as `YYYY-MM-DD`.
 - `release` is optional: the release or premiere date, as `YYYY-MM-DD`. The site marks it on the volume chart.
 - `drivers` are the word lists the site uses to tag each post by research area (cast, director, how it was made, marketing). A post is tagged when it contains one of the words or phrases, and can carry more than one tag. End a word with `*` to match any ending (`trailer*` matches trailer and trailers). Add, rename or remove drivers freely, up to 12. Hashtags are matched as one word, so add `mattdamon` as well as `matt damon`.
-- `lookback_days` is how far back each daily run looks once a project has data.
-- Add a second project by adding another block inside `projects`.
+- `events` are the campaign's key moments, each as `{"date": "2026-07-06", "label": "World premiere, London"}`. The site numbers them on the volume chart and shows how the conversation changed in the week after each one. The release date is added for you.
+- `voices` sorts accounts into groups. `"owned"` lists the studio's and film's official account names; an account whose name contains one of them counts as Studio and official. Add `"press"` to replace the built-in list of press and media names. Everyone else counts as Audience.
+- `emotions` is optional. It replaces the built-in emotion word lists (Anticipation, Awe, Joy, Moved, Disappointment, Anger) and works like `drivers`.
+- `lookback_days` is how far back each daily run looks once a project has data. A source's first run for a project goes all the way back to `since`, and so does the next run after you move `since` earlier.
+- Add another film by adding another block inside `projects`. With two or more, the site shows a head-to-head panel: share of voice, both films' volume lined up by days from release, and their drivers, emotions and voices side by side.
 - To turn a source off for a project, add `"skip_sources": ["reddit"]`.
 
 ## Add the keys

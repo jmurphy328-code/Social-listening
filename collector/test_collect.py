@@ -143,6 +143,34 @@ class Runs(unittest.TestCase):
             self.assertEqual(list(rows[0]), collect.CSV_COLUMNS)
             self.assertIn("| reddit | skipped: add the key |", collect.summary_markdown([rep], "now"))
 
+    def test_deep_pass_for_a_new_source_or_an_earlier_start(self):
+        seen = []
+
+        def spy(platform):
+            def collect_(project, since, limits, first_run):
+                seen.append((platform, since, first_run, limits["mastodon_pages"]))
+                return [collect.record(platform + ":1", platform, "post", "2026-09-05T00:00:00Z", "a", "text", 0, "", "q")]
+            return collect_
+
+        def skip(*args):
+            raise collect.Skip("no key")
+        now = dt.datetime(2026, 9, 20, tzinfo=dt.timezone.utc)
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(collect, "ROOT", Path(tmp)):
+            only_masto = {"youtube": skip, "reddit": skip, "bluesky": skip, "mastodon": spy("Mastodon")}
+            with mock.patch.dict(collect.SOURCES, only_masto):
+                collect.run_project(PROJECT, {}, now)
+                collect.run_project(PROJECT, {}, now)
+            self.assertEqual(seen, [("Mastodon", "2026-09-01T00:00:00Z", True, 40), ("Mastodon", "2026-09-06T00:00:00Z", False, 5)])
+            del seen[:]
+            with mock.patch.dict(collect.SOURCES, {**only_masto, "youtube": spy("YouTube")}):
+                collect.run_project(PROJECT, {}, now)  # a source whose key was just added starts from the beginning
+            self.assertEqual(seen, [("YouTube", "2026-09-01T00:00:00Z", True, 40), ("Mastodon", "2026-09-06T00:00:00Z", False, 5)])
+            del seen[:]
+            with mock.patch.dict(collect.SOURCES, only_masto):
+                collect.run_project({**PROJECT, "since": "2026-07-01"}, {}, now)  # an earlier start date triggers one deep pass
+                collect.run_project({**PROJECT, "since": "2026-07-01"}, {}, now)
+            self.assertEqual([(x[1], x[2]) for x in seen], [("2026-07-01T00:00:00Z", True), ("2026-09-06T00:00:00Z", False)])
+
     def test_bad_slug(self):
         with self.assertRaises(ValueError):
             collect.run_project({"slug": "../x"}, {}, dt.datetime.now(dt.timezone.utc))

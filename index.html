@@ -17,7 +17,7 @@
   --accent: #1c5cab; --accent-ink: #ffffff; --accent-wash: #e3edf9;
   --slate: #151a22; --slate-ink: #f2f4f7; --slate-dim: #9aa3b2; --slate-line: #2d3542;
   --pos: #2a78d6; --neu: #a9a79f; --neg: #e34948;
-  --series: #2a78d6; --series-wash: rgba(42,120,214,.10);
+  --series: #2a78d6; --series-wash: rgba(42,120,214,.10); --series-2: #eb6834;
   --note-bg: #fdf3d7; --note-ink: #4f3a00; --danger: #b3261e;
   --display: "Archivo", "Arial Narrow", system-ui, sans-serif;
   --body: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -30,7 +30,7 @@
     --accent: #6da7ec; --accent-ink: #0b1420; --accent-wash: #1a2a40;
     --slate: #1d222b; --slate-ink: #f2f4f7; --slate-dim: #9aa3b2; --slate-line: #343c49;
     --pos: #3987e5; --neu: #5f5e59; --neg: #e66767;
-    --series: #3987e5; --series-wash: rgba(57,135,229,.14);
+    --series: #3987e5; --series-wash: rgba(57,135,229,.14); --series-2: #d95926;
     --note-bg: #3a2f10; --note-ink: #f5d98a; --danger: #f2847c;
     color-scheme: dark;
   }
@@ -41,7 +41,7 @@
   --accent: #6da7ec; --accent-ink: #0b1420; --accent-wash: #1a2a40;
   --slate: #1d222b; --slate-ink: #f2f4f7; --slate-dim: #9aa3b2; --slate-line: #343c49;
   --pos: #3987e5; --neu: #5f5e59; --neg: #e66767;
-  --series: #3987e5; --series-wash: rgba(57,135,229,.14);
+  --series: #3987e5; --series-wash: rgba(57,135,229,.14); --series-2: #d95926;
   --note-bg: #3a2f10; --note-ink: #f5d98a; --danger: #f2847c;
   color-scheme: dark;
 }
@@ -160,6 +160,34 @@ th { color: var(--ink-2); font-weight: 600; }
 .lists { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--ink-2); margin-top: 8px; max-width: 80ch; }
 .lists b { color: var(--ink); font-weight: 600; }
 textarea { font: inherit; font-size: 13px; color: inherit; width: 100%; border: 1px solid var(--axis); background: var(--surface); border-radius: 6px; padding: 8px 10px; line-height: 1.5; }
+.sov { display: flex; flex-direction: column; gap: 6px; }
+.sov-labels { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
+.sov-labels span { min-width: 0; overflow-wrap: anywhere; }
+.sov-labels span:last-child { text-align: right; }
+.sov-labels b { font-weight: 700; }
+.sov-bar { display: flex; gap: 2px; height: 18px; }
+.sov-bar i { display: block; height: 100%; min-width: 2px; }
+.sov-bar i:first-child { background: var(--series); border-radius: 4px 0 0 4px; }
+.sov-bar i:last-child { background: var(--series-2); border-radius: 0 4px 4px 0; }
+.key-line { width: 14px; height: 3px; border-radius: 2px; display: inline-block; flex: none; }
+.heat td, .heat th { text-align: center; }
+.heat td:first-child, .heat th:first-child { text-align: left; }
+.heat td.cell { min-width: 64px; border-bottom: 2px solid var(--surface); border-right: 2px solid var(--surface); }
+.moments { display: flex; flex-direction: column; gap: 10px; }
+.spikes { display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: var(--ink-2); }
+.spikes b { color: var(--ink); font-weight: 600; }
+.link { border: 0; background: none; padding: 0; color: var(--accent); cursor: pointer; font-size: 13px; text-decoration: underline; text-underline-offset: 2px; }
+.voice-row { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: baseline; border: 0; background: transparent; padding: 6px; border-radius: 4px; text-align: left; cursor: pointer; width: 100%; border-top: 1px solid var(--line); }
+.voice-row:hover, .voice-row:focus-visible { background: var(--sunken); }
+.voice-row .who { font-size: 14px; overflow-wrap: anywhere; min-width: 0; }
+.voice-row .meta { font-size: 12px; color: var(--muted); }
+.voice-row .num { font-size: 13px; color: var(--ink-2); font-variant-numeric: tabular-nums; text-align: right; }
+.map svg text { font-size: 12px; fill: var(--ink); pointer-events: none; paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round; }
+.cmp-table { width: 100%; max-width: 620px; table-layout: fixed; }
+.cmp-table th, .cmp-table td { white-space: normal; overflow-wrap: anywhere; padding: 4px 6px; vertical-align: bottom; }
+.cmp-table th:first-child, .cmp-table td:first-child { width: 44%; padding-left: 0; }
+.mom-table th:nth-child(2), .mom-table th:nth-child(3) { text-align: left; }
+.map svg .node { cursor: pointer; }
 .empty { text-align: center; padding: 40px 16px; display: flex; flex-direction: column; gap: 10px; align-items: center; }
 .empty h3 { font-family: var(--display); font-stretch: 75%; font-size: 22px; text-transform: uppercase; }
 
@@ -257,6 +285,12 @@ textarea { font: inherit; font-size: 13px; color: inherit; width: 100%; border: 
       </select>
       <label class="sr" for="fDriver">Driver</label>
       <select id="fDriver"></select>
+      <label class="sr" for="fEmotion">Emotion</label>
+      <select id="fEmotion"></select>
+      <label class="sr" for="fVoice">Voice</label>
+      <select id="fVoice">
+        <option value="">Any voice</option><option value="owned">Studio and official</option><option value="press">Press and media</option><option value="audience">Audience</option>
+      </select>
       <label class="sr" for="fQuery">Search posts</label>
       <input type="search" id="fQuery" placeholder="Search the posts">
       <button class="btn quiet" type="button" id="fClear" hidden>Clear filters</button>
@@ -264,9 +298,43 @@ textarea { font: inherit; font-size: 13px; color: inherit; width: 100%; border: 
 
     <div class="tiles" id="tiles"></div>
 
+    <section class="panel" id="cmpPanel" hidden>
+      <div class="panel-head">
+        <h2>Head to head</h2>
+        <div class="row"><label for="cmpSelect" class="sub">Compare with</label><select id="cmpSelect"></select></div>
+      </div>
+      <div id="cmpBody" style="display: flex; flex-direction: column; gap: 14px">
+        <div class="sov" id="cmpSov"></div>
+        <div class="panel-head">
+          <div class="legend" id="cmpLegend"></div>
+          <div class="seg" role="group" aria-label="Line up the two films">
+            <button type="button" id="cmpByRelease" aria-pressed="true">Days from release</button>
+            <button type="button" id="cmpByDate" aria-pressed="false">Calendar dates</button>
+          </div>
+        </div>
+        <div class="chart" id="cmpChart"></div>
+        <div class="table-scroll" id="cmpTable"></div>
+        <p class="sub">Each film is tagged with its own word lists, and the filters above apply to both. Totals depend on how much was collected for each film, so read shapes and shares before raw counts.</p>
+      </div>
+      <p class="sub" id="cmpEmpty" hidden></p>
+    </section>
+
     <section class="panel">
       <div class="panel-head"><h2>Posts over time</h2><span class="sub" id="volSub"></span></div>
       <div class="chart" id="volChart"></div>
+      <div class="moments">
+        <div class="table-scroll" id="momTable"></div>
+        <div class="spikes" id="momSpikes"></div>
+        <details class="data" id="momEditBox">
+          <summary>Edit key moments</summary>
+          <div id="momEditor" style="margin-top: 10px; display: flex; flex-direction: column; gap: 8px">
+            <label for="momEdit" class="sub">One moment per line, as "2026-07-06: World premiere, London". The release date is added for you.</label>
+            <textarea id="momEdit" rows="6" spellcheck="false"></textarea>
+            <div class="row"><button class="btn primary" type="button" id="momSave">Save key moments</button><span class="status" id="momStatus"></span></div>
+          </div>
+        </details>
+        <p class="sub" id="momHelp"></p>
+      </div>
       <details class="data"><summary>Show the numbers</summary><div class="table-scroll" id="volTable"></div></details>
     </section>
 
@@ -274,6 +342,17 @@ textarea { font: inherit; font-size: 13px; color: inherit; width: 100%; border: 
       <div class="panel-head"><h2>Sentiment over time</h2><div class="legend" id="sentLegend"></div></div>
       <div class="chart" id="sentChart"></div>
       <p class="sub" id="sentMethod"></p>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2>How people feel</h2><span class="sub" id="emoSub"></span></div>
+      <div class="bars" id="emoBars"></div>
+      <div id="emoHeatBox">
+        <p class="sub" style="margin-bottom: 6px">Share of each driver's posts that use words for each emotion</p>
+        <div class="table-scroll" id="emoHeat"></div>
+      </div>
+      <p class="sub">Emotion is read from wording with word lists, the same way as the driver tags. Words straight after "not" are skipped. Treat small differences as noise.</p>
+      <details class="data"><summary>Word lists behind these emotions</summary><div class="lists" id="emoLists"></div></details>
     </section>
 
     <section class="panel">
@@ -293,6 +372,27 @@ textarea { font: inherit; font-size: 13px; color: inherit; width: 100%; border: 
       </details>
     </section>
 
+    <section class="panel">
+      <div class="panel-head"><h2>Who is talking</h2><span class="sub" id="voiceSub"></span></div>
+      <div class="pair">
+        <div style="min-width: 0; display: flex; flex-direction: column; gap: 8px">
+          <div class="bars" id="voiceBars"></div>
+          <p class="sub">Accounts are sorted into studio, press or audience by their names, using lists you can edit. Follower counts and reach are not in this data.</p>
+        </div>
+        <div style="min-width: 0; display: flex; flex-direction: column; gap: 6px">
+          <div class="panel-head">
+            <span class="sub">Top voices. Select one to see its posts.</span>
+            <div class="seg" role="group" aria-label="Rank voices by">
+              <button type="button" id="voiceByPosts" aria-pressed="true">Posts</button>
+              <button type="button" id="voiceByEng" aria-pressed="false">Engagement</button>
+            </div>
+          </div>
+          <div id="voiceTop"></div>
+        </div>
+      </div>
+      <details class="data"><summary>Account lists behind these groups</summary><div class="lists" id="voiceLists"></div></details>
+    </section>
+
     <div class="pair">
       <section class="panel">
         <div class="panel-head"><h2>Where people are talking</h2><span class="sub">Select a platform to filter</span></div>
@@ -310,6 +410,12 @@ textarea { font: inherit; font-size: 13px; color: inherit; width: 100%; border: 
         <p class="sub">Counted once per post. Select one to see the posts that use it.</p>
       </section>
     </div>
+
+    <section class="panel">
+      <div class="panel-head"><h2>Conversation map</h2><span class="sub">Words that appear in the same posts sit together. Select a word to see its posts.</span></div>
+      <div class="chart map" id="mapChart"></div>
+      <details class="data"><summary>Show the numbers</summary><div class="table-scroll" id="mapTable"></div></details>
+    </section>
 
     <section class="panel">
       <div class="panel-head"><h2>Readout</h2><span class="sub" id="readoutMeta"></span></div>
@@ -613,34 +719,80 @@ function compileDrivers(project) {
     }).filter(Boolean),
   }));
 }
+/* ---------- Emotions and voices: two more word-list tags, read the same way as drivers ---------- */
+const DEFAULT_EMOTIONS = {
+  'Anticipation': ["can't wait", 'cannot wait', 'so excited', 'excited', 'hyped', 'hype', 'counting down', 'looking forward', 'need to see', 'opening night', 'day one', 'anticipat*'],
+  'Awe': ['stunning', 'breathtaking', 'jaw dropping', 'jaw dropped', 'mind blowing', 'mind blown', 'blown away', 'spectacle', 'spectacular', 'masterpiece', 'incredible', 'awe', 'awestruck', 'gorgeous', 'speechless', 'magnificent', 'astonishing', 'unreal', 'peak cinema'],
+  'Joy': ['loved', 'love it', 'loved it', 'fun', 'enjoyed', 'delight*', 'happy', 'laughed', 'hilarious', 'a blast', 'great time', 'favorite', 'favourite', 'wonderful', 'amazing', 'awesome', 'fantastic'],
+  'Moved': ['cried', 'crying', 'tears', 'sobbing', 'emotional', 'heartbreaking', 'heart wrenching', 'goosebumps', 'chills', 'touching', 'devastat*', 'wept'],
+  'Disappointment': ['disappointed', 'disappointing', 'letdown', 'let down', 'underwhelm*', 'overrated', 'overhyped', 'boring', 'bored', 'meh', 'forgettable', 'expected more', 'waste of', 'too long', 'dragged', 'slog'],
+  'Anger': ['hate', 'hated', 'terrible', 'awful', 'worst', 'trash', 'garbage', 'angry', 'furious', 'outrage*', 'ruined', 'insult*', 'ripoff', 'rip off', 'unwatchable', 'disgust*'],
+};
+const DEFAULT_PRESS = ['news', 'feed', 'press', 'variety', 'deadline', 'hollywood', 'indiewire', 'collider', 'screenrant', 'empire', 'rottentomatoes', 'fandango', 'boxoffice', 'times', 'guardian', 'bbc', 'cnn', 'mashable', 'verge', 'podcast', 'radio', 'magazine', 'gazette', 'herald', 'tribune', 'journal', 'media'];
+const VOICE_NAMES = { owned: 'Studio and official', press: 'Press and media', audience: 'Audience' };
+const plainSet = (v, fallback) => (v && typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length ? v : fallback);
+const emotionsOf = project => plainSet(project && project.emotions, DEFAULT_EMOTIONS);
+function voicesOf(project) {
+  const v = (project && project.voices) || {};
+  return { owned: Array.isArray(v.owned) ? v.owned : [], press: Array.isArray(v.press) && v.press.length ? v.press : DEFAULT_PRESS };
+}
+const NEGATOR_RE = /(?:^| )(?:not|no|never|isnt|wasnt|dont|didnt|doesnt|cant|couldnt|wont|wouldnt|aint|hardly|barely)(?= )/;
+const NEG_SPAN = / (?:not|no|never|isnt|wasnt|dont|didnt|doesnt|cant|couldnt|wont|wouldnt|aint|hardly|barely)(?: [^ ]+){1,2}/g;
+const handleKey = t => String(t).toLowerCase().replace(/[^a-z0-9]/g, '');
+
 /* A post's own category (from the file it came in) counts as a hand tag. Names are matched loosely,
    so "unique marketing" joins Marketing and "how the movie was made" joins How it was made. */
 const NAME_NOISE = new Set('the a an of it was is and movie film unique usage use'.split(' '));
 const stemKey = name => tokens(name).filter(w => !NAME_NOISE.has(w)).map(w => w.slice(0, 4)).sort().join(' ');
 const manualNames = m => (m.g ? String(m.g).split(/[;,|]/).map(t => t.trim()).filter(Boolean).slice(0, 6) : []);
-let compiled = [], driverVer = 0, driverKey = '', syncedList = null, manualSeen = new Map(), stemIndex = new Map();
-function syncDrivers(project, all) {
-  if (all !== syncedList) {
-    syncedList = all; manualSeen = new Map();
-    for (const m of all) for (const nm of manualNames(m)) { const k = stemKey(nm); if (k && !manualSeen.has(k)) manualSeen.set(k, nm); }
+
+/* Each project gets its own tagging context, so two films can be tagged side by side with their own lists. */
+const ctxSlots = new Map();
+function contextFor(project, all) {
+  const id = project ? project.id : '';
+  let slot = ctxSlots.get(id);
+  if (!slot) ctxSlots.set(id, slot = { list: null, len: -1, manual: new Map(), key: '', cx: null });
+  if (slot.list !== all || slot.len !== all.length) {
+    slot.list = all; slot.len = all.length; slot.manual = new Map();
+    for (const m of all) for (const nm of manualNames(m)) { const k = stemKey(nm); if (k && !slot.manual.has(k)) slot.manual.set(k, nm); }
   }
-  const key = JSON.stringify(driversOf(project)) + '|' + [...manualSeen.keys()].join(',');
-  if (key === driverKey) return;
-  driverKey = key; compiled = compileDrivers(project); driverVer++;
-  stemIndex = new Map(compiled.map((d, i) => [stemKey(d.name), i]));
-  for (const [k, nm] of manualSeen) if (!stemIndex.has(k) && compiled.length < 16) { stemIndex.set(k, compiled.length); compiled.push({ name: nm.slice(0, 40), terms: [], manual: true }); }
+  const key = JSON.stringify([driversOf(project), emotionsOf(project), voicesOf(project)]) + '|' + [...slot.manual.keys()].join(',');
+  if (key !== slot.key) {
+    const comp = compileDrivers(project);
+    const stemIndex = new Map(comp.map((d, i) => [stemKey(d.name), i]));
+    for (const [k, nm] of slot.manual) if (!stemIndex.has(k) && comp.length < 16) { stemIndex.set(k, comp.length); comp.push({ name: nm.slice(0, 40), terms: [], manual: true }); }
+    const emotions = Object.entries(emotionsOf(project)).slice(0, 10).map(([name, terms]) => ({
+      name: String(name).slice(0, 30),
+      terms: (Array.isArray(terms) ? terms : []).slice(0, 120).map(raw => {
+        const t = String(raw).trim(), norm = tokens(t).join(' ');
+        return norm ? { t: ' ' + norm + (t.endsWith('*') ? '' : ' '), full: NEGATOR_RE.test(norm) } : null;
+      }).filter(Boolean),
+    }));
+    const v = voicesOf(project);
+    slot.key = key;
+    slot.cx = { key, compiled: comp, stemIndex, emotions, owned: v.owned.map(handleKey).filter(Boolean), press: v.press.map(handleKey).filter(Boolean) };
+  }
+  return slot.cx;
 }
-function driverTags(m) {
-  if (m._dv !== driverVer) {
+let CX = { key: '', compiled: [], stemIndex: new Map(), emotions: [], owned: [], press: [] }, compiled = [], driverKey = '';
+function syncDrivers(project, all) { CX = contextFor(project, all); compiled = CX.compiled; driverKey = CX.key; }
+function tagAll(m, cx) {
+  if (m._cx !== cx) {
     if (!m._nt) m._nt = ' ' + tokens(m.x).join(' ') + ' ';
     m._kw = []; m._hd = [];
-    compiled.forEach((d, i) => { if (d.terms.some(t => m._nt.includes(t))) m._kw.push(i); });
-    for (const nm of manualNames(m)) { const i = stemIndex.get(stemKey(nm)); if (i !== undefined && !m._hd.includes(i)) m._hd.push(i); }
+    cx.compiled.forEach((d, i) => { if (d.terms.some(t => m._nt.includes(t))) m._kw.push(i); });
+    for (const nm of manualNames(m)) { const i = cx.stemIndex.get(stemKey(nm)); if (i !== undefined && !m._hd.includes(i)) m._hd.push(i); }
     m._dr = [...new Set(m._kw.concat(m._hd))].sort((a, b) => a - b);
-    m._dv = driverVer;
+    const calm = m._nt.replace(NEG_SPAN, ' ');
+    m._em = [];
+    cx.emotions.forEach((e, i) => { if (e.terms.some(t => (t.full ? m._nt : calm).includes(t.t))) m._em.push(i); });
+    const who = handleKey(m.a || '');
+    m._vt = !who ? 'audience' : cx.owned.some(t => who.includes(t)) ? 'owned' : cx.press.some(t => who.includes(t)) ? 'press' : 'audience';
+    m._cx = cx;
   }
-  return m._dr;
+  return m;
 }
+const driverTags = (m, cx = CX) => tagAll(m, cx)._dr;
 function parseDriverText(text) {
   const out = {};
   for (const line of String(text).split('\n')) {
@@ -660,32 +812,40 @@ function niceMax(v) {
   for (const k of [1, 2, 4, 6, 8, 10]) if (k * p >= v) return k * p;
   return 10 * p;
 }
-function applyFilters(all, f, project) {
+const blankFilters = () => ({ range: 'all', from: 0, to: 0, platform: '', sent: '', driver: '', emotion: '', voice: '', q: '' });
+function applyFilters(all, f, project, cx = CX) {
   let maxT = -Infinity;
   for (const m of all) if (m.t !== null && m.t > maxT) maxT = m.t;
   const rel = project && project.release ? Date.parse(project.release + 'T00:00:00Z') / 1000 : null;
-  const q = f.q ? tokens(f.q).join(' ') : '';
+  const from = /^from:/i.test(f.q || '') ? f.q.slice(5).trim().toLowerCase() : '';
+  const q = f.q && !from ? tokens(f.q).join(' ') : '';
   return all.filter(m => {
     if (f.range === '7' && !(m.t !== null && m.t > maxT - 7 * DAY)) return false;
     if (f.range === '30' && !(m.t !== null && m.t > maxT - 30 * DAY)) return false;
-    if (f.range === 'post' && !(m.t !== null && m.t >= rel)) return false;
-    if (f.range === 'pre' && !(m.t !== null && m.t < rel)) return false;
+    if (f.range === 'post' && rel !== null && !(m.t !== null && m.t >= rel)) return false;
+    if (f.range === 'pre' && rel !== null && !(m.t !== null && m.t < rel)) return false;
+    if (f.range === 'custom' && !(m.t !== null && m.t >= f.from && m.t < f.to)) return false;
     if (f.platform && m.p !== f.platform) return false;
     if (f.sent !== '' && m.s !== +f.sent) return false;
-    if (f.driver) { const tg = driverTags(m); if (f.driver === NONE ? tg.length : !tg.some(i => compiled[i].name === f.driver)) return false; }
+    if (f.driver || f.emotion || f.voice) tagAll(m, cx);
+    if (f.driver && (f.driver === NONE ? m._dr.length : !m._dr.some(i => cx.compiled[i].name === f.driver))) return false;
+    if (f.emotion && (f.emotion === NONE ? m._em.length : !m._em.some(i => cx.emotions[i].name === f.emotion))) return false;
+    if (f.voice && m._vt !== f.voice) return false;
+    if (from && (m.a || '').toLowerCase() !== from) return false;
     if (q) { if (!m._nt) m._nt = ' ' + tokens(m.x).join(' ') + ' '; if (!m._nt.includes(q)) return false; }
     return true;
   });
 }
-function analyze(list, project, maxBuckets) {
-  const A = { n: list.length, pos: 0, neu: 0, neg: 0, eng: 0, authors: new Set(), platforms: new Map(), buckets: [], step: 1, undated: 0, minT: null, maxT: null };
+function analyze(list, project, maxBuckets, cx = CX) {
+  const A = { n: list.length, pos: 0, neu: 0, neg: 0, eng: 0, authors: new Set(), platforms: new Map(), buckets: [], step: 1, undated: 0, minT: null, maxT: null, daily: new Map() };
   let lo = Infinity, hi = -Infinity, d0 = 0;
   for (const m of list) {
     if (m.s > 0) A.pos++; else if (m.s < 0) A.neg++; else A.neu++;
     A.eng += m.e || 0;
     if (m.a) A.authors.add(m.a.toLowerCase());
     A.platforms.set(m.p, (A.platforms.get(m.p) || 0) + 1);
-    if (m.t === null) A.undated++; else { if (m.t < lo) lo = m.t; if (m.t > hi) hi = m.t; }
+    if (m.t === null) A.undated++;
+    else { if (m.t < lo) lo = m.t; if (m.t > hi) hi = m.t; const d = Math.floor(m.t / DAY); A.daily.set(d, (A.daily.get(d) || 0) + 1); }
   }
   if (hi >= lo) {
     A.minT = lo; A.maxT = hi;
@@ -702,19 +862,29 @@ function analyze(list, project, maxBuckets) {
   }
   const blank = k => ({ k, n: 0, pos: 0, neg: 0, eng: 0, hand: 0, auto: 0, both: 0, series: A.buckets.map(() => 0) });
   A.handTagged = 0;
-  A.drivers = compiled.map(d => blank(d.name));
+  A.drivers = cx.compiled.map(d => blank(d.name));
   A.none = blank('No driver matched');
+  A.emotions = cx.emotions.map(e => ({ k: e.name, n: 0, eng: 0, pos: 0, neg: 0 }));
+  A.noEmotion = { k: 'No emotion words', n: 0, eng: 0, pos: 0, neg: 0 };
+  A.matrix = A.drivers.map(() => cx.emotions.map(() => 0));
+  A.voices = { owned: { k: VOICE_NAMES.owned, n: 0, eng: 0 }, press: { k: VOICE_NAMES.press, n: 0, eng: 0 }, audience: { k: VOICE_NAMES.audience, n: 0, eng: 0 } };
+  const people = new Map();
   for (const m of list) {
-    const tg = driverTags(m), bi = m.t === null || !A.buckets.length ? -1 : Math.floor((Math.floor(m.t / DAY) - d0) / A.step);
+    const tg = tagAll(m, cx)._dr, bi = m.t === null || !A.buckets.length ? -1 : Math.floor((Math.floor(m.t / DAY) - d0) / A.step);
     for (const d of (tg.length ? tg.map(i => A.drivers[i]) : [A.none])) {
       d.n++; d.eng += m.e || 0; if (m.s > 0) d.pos++; else if (m.s < 0) d.neg++;
       if (bi >= 0) d.series[bi]++;
     }
     if (m._hd.length) A.handTagged++;
     for (const i of tg) { const h_ = m._hd.includes(i), k_ = m._kw.includes(i); if (h_) A.drivers[i].hand++; if (k_) A.drivers[i].auto++; if (h_ && k_) A.drivers[i].both++; }
+    for (const e of (m._em.length ? m._em.map(i => A.emotions[i]) : [A.noEmotion])) { e.n++; e.eng += m.e || 0; if (m.s > 0) e.pos++; else if (m.s < 0) e.neg++; }
+    for (const i of m._em) for (const j of tg) A.matrix[j][i]++;
+    const v = A.voices[m._vt]; v.n++; v.eng += m.e || 0;
+    if (m.a) { const k = m.a.toLowerCase() + '|' + m.p; let o = people.get(k); if (!o) people.set(k, o = { a: m.a, p: m.p, type: m._vt, n: 0, eng: 0 }); o.n++; o.eng += m.e || 0; }
   }
+  A.people = [...people.values()];
   const ex = new Set(tokens((project ? project.title + ' ' + (project.terms || '') : '')).concat(['example']));
-  const uni = new Map(), bi = new Map();
+  const uni = new Map(), bi = new Map(), sets = [];
   const bump = (map, k, sv) => { let o = map.get(k); if (!o) map.set(k, o = { k, n: 0, pos: 0, neg: 0 }); o.n++; if (sv > 0) o.pos++; else if (sv < 0) o.neg++; };
   for (const m of list) {
     if (!m._tk) m._tk = tokens(m.x);
@@ -727,11 +897,42 @@ function analyze(list, project, maxBuckets) {
       if (prev) { const b = prev + ' ' + w; if (!sb.has(b)) { sb.add(b); bump(bi, b, m.s); } }
       prev = w;
     }
+    sets.push(su);
   }
-  const top = map => [...map.values()].filter(o => o.n >= 2).sort((a, b) => b.n - a.n || (a.k < b.k ? -1 : 1)).slice(0, 10);
+  const rank = (a, b) => b.n - a.n || (a.k < b.k ? -1 : 1);
+  const top = map => [...map.values()].filter(o => o.n >= 2).sort(rank).slice(0, 10);
   A.words = top(uni); A.phrases = top(bi);
   A.platformList = [...A.platforms.entries()].map(([k, n]) => ({ k, n })).sort((a, b) => b.n - a.n);
+  /* Conversation map: the most used words, linked by how often they share a post. */
+  const nodes = [...uni.values()].filter(o => o.n >= 3).sort(rank).slice(0, 26);
+  const at = new Map(nodes.map((o, i) => [o.k, i])), pairs = new Map();
+  for (const su of sets) {
+    const here = [];
+    for (const w of su) if (at.has(w)) here.push(at.get(w));
+    here.sort((a, b) => a - b);
+    for (let i = 0; i < here.length; i++) for (let j = i + 1; j < here.length; j++) { const k = here[i] * 100 + here[j]; pairs.set(k, (pairs.get(k) || 0) + 1); }
+  }
+  A.net = { nodes: nodes.map(o => ({ k: o.k, n: o.n })), links: [...pairs.entries()].map(([k, n]) => ({ a: Math.floor(k / 100), b: k % 100, n })).filter(l => l.n >= 2).sort((a, b) => b.n - a.n) };
+  A.uni = uni;
   return A;
+}
+/* Key moments: the dates a project lists, plus its release date. */
+function momentsOf(project) {
+  const out = [], seen = new Set();
+  const add = (date, label) => { const t = Date.parse(date + 'T00:00:00Z') / 1000; if (!isNaN(t) && label && !seen.has(date)) { seen.add(date); out.push({ t, date, label: String(label).slice(0, 80) }); } };
+  for (const e of (project && Array.isArray(project.events) ? project.events : []).slice(0, 40)) if (e && /^\d{4}-\d{2}-\d{2}$/.test(e.date || '')) add(e.date, e.label);
+  if (project && /^\d{4}-\d{2}-\d{2}$/.test(project.release || '')) add(project.release, 'Release');
+  out.sort((a, b) => a.t - b.t);
+  out.forEach((e, i) => { e.num = i + 1; });
+  return out;
+}
+function parseMomentText(text) {
+  const out = [];
+  for (const line of String(text).split('\n')) {
+    const m = line.match(/^\s*(\d{4}-\d{2}-\d{2})\s*[:\-–]\s*(.+)$/);
+    if (m && out.length < 40) out.push({ date: m[1], label: m[2].trim().slice(0, 80) });
+  }
+  return out;
 }
 function bucketLabel(b, step, long) {
   const f = long ? fLong : fShort;
@@ -772,8 +973,8 @@ let abort = null;
 const S = {
   mode: 'boot', db: null, user: null, uid: null, sample: null, canWrite: true, canEdit: false,
   projects: new Map(), currentId: null, parts: [], mentions: [], readout: null, draft: null,
-  filters: { range: 'all', platform: '', sent: '', driver: '', q: '' }, kw: 'words', postLimit: 20,
-  unsubParts: null, unsubReadout: null, names: {}, pending: null, local: new Map(), busy: false, autoExample: true, sentSource: 'estimated', streaming: false, loadingParts: false, lastRun: '', siteLoaded: new Set(),
+  filters: blankFilters(), kw: 'words', postLimit: 20,
+  unsubParts: null, unsubReadout: null, names: {}, pending: null, local: new Map(), busy: false, autoExample: true, sentSource: 'estimated', streaming: false, loadingParts: false, lastRun: '', siteLoaded: new Set(), siteLoading: new Set(), compareId: undefined, cmpAlign: 'release', voiceSort: 'n', cmp: new Map(), cmpLoading: new Set(),
 };
 const current = () => S.currentId === EXAMPLE.id ? EXAMPLE : S.projects.get(S.currentId) || null;
 const isExample = () => S.currentId === EXAMPLE.id;
@@ -797,12 +998,12 @@ function topRounded(x, y, w, hgt, r) {
   r = Math.min(r, w / 2, hgt);
   return `M${x},${y + hgt}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + hgt}Z`;
 }
-function timeChart(host, A, kind, project) {
+function timeChart(host, A, kind, project, marks) {
   host.textContent = '';
   const B = A.buckets, n = B.length;
   if (!n) { host.append(h('p', { class: 'sub', text: A.n ? 'These posts have no dates, so there is nothing to plot over time.' : 'No posts match these filters.' })); return; }
-  const W = Math.max(280, host.clientWidth), H = kind === 'vol' ? 240 : 190;
-  const m = { l: 46, r: 12, t: kind === 'vol' ? 34 : 12, b: 26 };
+  const W = Math.max(280, host.clientWidth), H = kind === 'vol' ? 264 : 190;
+  const m = { l: 46, r: 12, t: kind === 'vol' ? 58 : 12, b: 26 };
   const pw = W - m.l - m.r, ph = H - m.t - m.b, slot = pw / n;
   const max = niceMax(Math.max(1, ...B.map(b => b.n)));
   const X = i => m.l + (i + 0.5) * slot, Y = v => m.t + ph - v / max * ph;
@@ -819,8 +1020,8 @@ function timeChart(host, A, kind, project) {
     if (used.has(i)) continue; used.add(i);
     svg.append(s('text', { x: X(i), y: H - 7, 'text-anchor': k === 0 ? 'start' : k === ticks - 1 ? 'end' : 'middle' }, fShort(B[i].t)));
   }
-  const rel = project && project.release ? Date.parse(project.release + 'T00:00:00Z') / 1000 : null;
-  const ri = rel !== null && rel >= B[0].t && rel < B[n - 1].t + A.step * DAY ? Math.floor((rel - B[0].t) / (A.step * DAY)) : -1;
+  const span = A.step * DAY;
+  const placed = (marks || []).filter(e => e.t >= B[0].t && e.t < B[n - 1].t + span).map(e => Object.assign({ i: Math.floor((e.t - B[0].t) / span) }, e));
   if (kind === 'vol') {
     let pi = 0; B.forEach((b, i) => { if (b.n > B[pi].n) pi = i; });
     if (n > 1) {
@@ -828,17 +1029,21 @@ function timeChart(host, A, kind, project) {
       svg.append(s('path', { d: `M${X(0)},${Y(0)}L${pts.join('L')}L${X(n - 1)},${Y(0)}Z`, fill: 'var(--series-wash)' }));
       svg.append(s('path', { d: 'M' + pts.join('L'), fill: 'none', stroke: 'var(--series)', 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
     }
-    if (ri >= 0) svg.append(s('line', { x1: X(ri), x2: X(ri), y1: m.t - 6, y2: Y(0), stroke: 'var(--ink-2)', 'stroke-width': 1 }));
+    const lastX = [-99, -99];
+    for (const e of placed) {
+      const x = X(e.i), row = x - lastX[0] >= 20 ? 0 : x - lastX[1] >= 20 ? 1 : -1, top = row < 0 ? m.t - 6 : 11 + row * 19;
+      svg.append(s('line', { x1: x, x2: x, y1: row < 0 ? top : top + 9, y2: Y(0), stroke: 'var(--ink-2)', 'stroke-width': 1, 'stroke-opacity': 0.55 }));
+      if (row < 0) continue;
+      lastX[row] = x;
+      const g = s('g', {});
+      g.append(s('title', {}, fLong(e.t) + ': ' + e.label));
+      g.append(s('circle', { cx: x, cy: top, r: 8.5, fill: 'var(--surface)', stroke: 'var(--ink-2)', 'stroke-width': 1 }));
+      g.append(s('text', { x, y: top + 4, 'text-anchor': 'middle', class: 'strong', style: 'font-size: 11px' }, String(e.num)));
+      svg.append(g);
+    }
     svg.append(s('circle', { cx: X(pi), cy: Y(B[pi].n), r: 4.5, fill: 'var(--series)', stroke: 'var(--surface)', 'stroke-width': 2 }));
     const side = x => x > W - 150 ? 'end' : x < 150 ? 'start' : 'middle';
-    const peakText = 'Peak ' + fmt(B[pi].n) + ', ' + fShort(B[pi].t);
-    if (ri >= 0 && Math.abs(X(ri) - X(pi)) < 180) {
-      svg.append(s('text', { x: X(ri) + (side(X(ri)) === 'end' ? -10 : 10), y: m.t - 20, class: 'strong', 'text-anchor': side(X(ri)) === 'end' ? 'end' : 'start' }, 'Release ' + fShort(rel)));
-      svg.append(s('text', { x: X(ri) + (side(X(ri)) === 'end' ? -10 : 10), y: m.t - 6, 'text-anchor': side(X(ri)) === 'end' ? 'end' : 'start' }, peakText));
-    } else {
-      if (ri >= 0) svg.append(s('text', { x: X(ri) + (side(X(ri)) === 'end' ? -6 : 6), y: m.t - 12, class: 'strong', 'text-anchor': side(X(ri)) === 'end' ? 'end' : 'start' }, 'Release ' + fShort(rel)));
-      svg.append(s('text', { x: X(pi), y: Math.max(12, Y(B[pi].n) - 10), class: 'strong', 'text-anchor': side(X(pi)) }, peakText));
-    }
+    svg.append(s('text', { x: X(pi), y: Math.max(m.t - 6, Y(B[pi].n) - 10), class: 'strong', 'text-anchor': side(X(pi)) }, 'Peak ' + fmt(B[pi].n) + ', ' + fShort(B[pi].t)));
   } else {
     const bw = Math.max(1, Math.min(24, slot - 2));
     B.forEach((b, i) => {
@@ -852,7 +1057,7 @@ function timeChart(host, A, kind, project) {
         else svg.append(s('rect', { x, y, width: bw, height: hh, fill: `var(--${cls})` }));
       });
     });
-    if (ri >= 0) svg.append(s('line', { x1: X(ri) - slot / 2, x2: X(ri) - slot / 2, y1: m.t, y2: Y(0), stroke: 'var(--ink-2)', 'stroke-width': 1 }));
+    for (const e of placed) svg.append(s('line', { x1: X(e.i) - slot / 2, x2: X(e.i) - slot / 2, y1: m.t, y2: Y(0), stroke: 'var(--ink-2)', 'stroke-width': 1, 'stroke-opacity': 0.55 }));
   }
   const cross = s('line', { y1: m.t, y2: Y(0), stroke: 'var(--muted)', 'stroke-width': 1, visibility: 'hidden' });
   svg.append(cross);
@@ -968,6 +1173,318 @@ function renderDrivers(A, project) {
     : 'A post is tagged when it contains one of these words or phrases; a * matches any ending.';
 }
 
+/* ---------- Key moments and unexplained peaks ---------- */
+const daySum = (daily, from, to) => { let n = 0; for (let d = from; d <= to; d++) n += daily.get(d) || 0; return n; };
+function pickDays(from, to) { S.filters.range = 'custom'; S.filters.from = from * DAY; S.filters.to = to * DAY; S.postLimit = 20; refresh(); $('posts').scrollIntoView({ block: 'nearest' }); }
+function renderMoments(project, wide, marks) {
+  const daily = new Map();
+  let minD = Infinity, maxD = -Infinity;
+  for (const m of wide) if (m.t !== null) { const d = Math.floor(m.t / DAY); daily.set(d, (daily.get(d) || 0) + 1); if (d < minD) minD = d; if (d > maxD) maxD = d; }
+  const have = maxD >= minD;
+  const host = $('momTable'); host.textContent = '';
+  const link = (text, fn) => { const b = h('button', { type: 'button', class: 'link', text }); b.addEventListener('click', fn); return b; };
+  if (marks.length) {
+    const tb = h('table', { class: 'mom-table' }, h('thead', null, h('tr', null, ...['', 'Date', 'Key moment', '7 days before', '7 days after', 'Change', ''].map(t => h('th', { text: t })))));
+    const body = h('tbody');
+    for (const e of marks) {
+      const d = Math.floor(e.t / DAY), inside = have && d >= minD && d <= maxD, full = inside && d - 7 >= minD;
+      const before = daySum(daily, d - 7, d - 1), after = daySum(daily, d, d + 6);
+      const change = !inside ? 'Outside the dates collected' : !full ? 'No full week before it' : before ? (after >= before ? '+' : '') + Math.round((after - before) / before * 100) + '%' : after ? 'From nothing' : 'No posts';
+      const row = h('tr', null, ...[String(e.num), fLong(e.t), e.label, full ? fmt(before) : '', inside ? fmt(after) : '', change].map(v => h('td', { text: v })));
+      row.children[2].style.textAlign = 'left'; row.children[2].style.whiteSpace = 'normal'; row.children[1].style.textAlign = 'left';
+      row.append(h('td', null, inside && before + after ? link('See posts', () => pickDays(d - 7, d + 7)) : null));
+      body.append(row);
+    }
+    tb.append(body); host.append(tb);
+  }
+  const sp = $('momSpikes'); sp.textContent = '';
+  if (have && maxD - minD >= 6) {
+    const days = []; for (let d = minD; d <= maxD; d++) days.push(daily.get(d) || 0);
+    const mean = days.reduce((a, b) => a + b, 0) / days.length, sd = Math.sqrt(days.reduce((a, b) => a + (b - mean) * (b - mean), 0) / days.length);
+    const near = d => marks.some(e => Math.abs(Math.floor(e.t / DAY) - d) <= 1);
+    const peaks = days.map((n, i) => ({ n, d: minD + i, i })).filter(o => o.n >= Math.max(5, mean + 2 * sd) && o.n >= (days[o.i - 1] || 0) && o.n >= (days[o.i + 1] || 0) && !near(o.d)).sort((a, b) => b.n - a.n).slice(0, 3);
+    if (peaks.length) {
+      const skip = new Set(tokens(project ? project.title + ' ' + (project.terms || '') : ''));
+      const words = m => { if (!m._tk) m._tk = tokens(m.x); return new Set(m._tk.filter(w => w.length > 2 && !STOP.has(w) && !skip.has(w) && !/^\d+$/.test(w))); };
+      const overall = new Map(); let total = 0;
+      for (const m of wide) { total++; for (const w of words(m)) overall.set(w, (overall.get(w) || 0) + 1); }
+      sp.append(h('b', { text: 'Peaks with no listed moment' }));
+      for (const pk of peaks) {
+        const today = wide.filter(m => m.t !== null && Math.floor(m.t / DAY) === pk.d), count = new Map();
+        for (const m of today) for (const w of words(m)) count.set(w, (count.get(w) || 0) + 1);
+        const lead = [...count.entries()].filter(([, c]) => c >= 2).map(([w, c]) => [w, c / today.length - overall.get(w) / total]).sort((a, b) => b[1] - a[1]).slice(0, 4).map(x => x[0]);
+        sp.append(h('div', null, h('b', { text: fLong(pk.d * DAY) }), ' · ' + fmt(pk.n) + ' posts, ' + (pk.n / Math.max(mean, 0.01)).toFixed(1) + ' times the daily average' + (lead.length ? ' · standing out: ' + lead.join(', ') : '') + ' · ', link('See posts', () => pickDays(pk.d, pk.d + 1))));
+      }
+    } else sp.append(h('span', { class: 'sub', text: 'No peaks outside the listed moments in this view.' }));
+  }
+  const canEdit = !isExample() && S.canWrite && (S.mode === 'db' || S.mode === 'local');
+  $('momEditBox').hidden = !canEdit;
+  const key = S.currentId + JSON.stringify((project && project.events) || []);
+  if (canEdit && document.activeElement !== $('momEdit') && $('momEdit').dataset.key !== key) {
+    $('momEdit').value = ((project && project.events) || []).map(e => e.date + ': ' + e.label).join('\n');
+    $('momEdit').dataset.key = key;
+  }
+  $('momHelp').textContent = S.mode === 'site' ? 'Numbers on the chart mark these moments. To add or change them, edit "events" in config.json in the repository.' : marks.length ? 'Numbers on the chart mark these moments.' : '';
+}
+
+/* ---------- Emotions ---------- */
+function renderEmotions(A) {
+  const ranked = [...A.emotions].sort((a, b) => b.n - a.n);
+  $('emoSub').textContent = A.n ? pct(A.n - A.noEmotion.n, A.n) + '% of posts use an emotion word' : '';
+  const items = ranked.map(e => ({ k: e.k, n: e.n, e, label: fmt(e.n) + ' · ' + pct(e.n, A.n) + '%' }))
+    .concat([{ k: A.noEmotion.k, n: A.noEmotion.n, e: A.noEmotion, muted: true, key: NONE, label: fmt(A.noEmotion.n) + ' · ' + pct(A.noEmotion.n, A.n) + '%' }]);
+  barList($('emoBars'), A.n ? items : [], it => { const v = it.key || it.k; S.filters.emotion = S.filters.emotion === v ? '' : v; S.postLimit = 20; refresh(); },
+    (t, it) => t.append(h('div', { class: 't-head', text: it.k }), tipRow('Posts', fmt(it.n)), tipRow('Share of posts', pct(it.n, A.n) + '%'), tipRow('Engagement per post', it.n ? (it.e.eng / it.n).toFixed(1) : '0')));
+  const rows = A.drivers.map((d, j) => ({ d, j })).filter(o => o.d.n > 0).sort((a, b) => b.d.n - a.d.n);
+  $('emoHeatBox').hidden = !rows.length || !A.emotions.length;
+  const heat = $('emoHeat'); heat.textContent = '';
+  if (rows.length && A.emotions.length) {
+    let top = 1;
+    for (const o of rows) A.emotions.forEach((e, i) => { top = Math.max(top, pct(A.matrix[o.j][i], o.d.n)); });
+    const tb = h('table', { class: 'heat' }, h('thead', null, h('tr', null, h('th', { text: 'Driver' }), ...A.emotions.map(e => h('th', { text: e.k })), h('th', { text: 'Posts' }))));
+    const body = h('tbody');
+    for (const o of rows) body.append(h('tr', null, h('td', { text: o.d.k }), ...A.emotions.map((e, i) => {
+      const v = pct(A.matrix[o.j][i], o.d.n);
+      return h('td', { class: 'cell', text: v + '%', title: fmt(A.matrix[o.j][i]) + ' of ' + fmt(o.d.n) + ' ' + o.d.k + ' posts', style: `background: color-mix(in srgb, var(--series) ${Math.round(v / top * 55)}%, transparent)` });
+    }), h('td', { text: fmt(o.d.n) })));
+    tb.append(body); heat.append(tb);
+  }
+  const lists = $('emoLists'); lists.textContent = '';
+  const src = emotionsOf(current());
+  for (const name of Object.keys(src).slice(0, 10)) lists.append(h('div', null, h('b', { text: name + ': ' }), (src[name] || []).join(', ')));
+}
+
+/* ---------- Voices ---------- */
+function renderVoices(A) {
+  $('voiceSub').textContent = A.people.length ? fmt(A.people.length) + ' accounts' : '';
+  const items = ['owned', 'press', 'audience'].map(k => ({ k: A.voices[k].k, key: k, n: A.voices[k].n, v: A.voices[k], label: fmt(A.voices[k].n) + ' · ' + pct(A.voices[k].n, A.n) + '%' }));
+  barList($('voiceBars'), A.n ? items : [], it => { S.filters.voice = S.filters.voice === it.key ? '' : it.key; S.postLimit = 20; refresh(); },
+    (t, it) => t.append(h('div', { class: 't-head', text: it.k }), tipRow('Posts', fmt(it.n)), tipRow('Share of posts', pct(it.n, A.n) + '%'), tipRow('Share of engagement', pct(it.v.eng, A.eng) + '%')));
+  $('voiceByPosts').setAttribute('aria-pressed', S.voiceSort === 'n'); $('voiceByEng').setAttribute('aria-pressed', S.voiceSort === 'eng');
+  const host = $('voiceTop'); host.textContent = '';
+  const top = [...A.people].sort(S.voiceSort === 'eng' ? (a, b) => b.eng - a.eng || b.n - a.n : (a, b) => b.n - a.n || b.eng - a.eng).slice(0, 8);
+  if (!top.length) host.append(h('p', { class: 'sub', text: 'No account names in this data.' }));
+  for (const o of top) {
+    const row = h('button', { type: 'button', class: 'voice-row' },
+      h('span', { class: 'who', text: o.a }), h('span', { class: 'num', text: fmt(o.n) + (o.n === 1 ? ' post' : ' posts') + ' · ' + compact(o.eng) + ' engagement' }),
+      h('span', { class: 'meta', text: o.p + ' · ' + VOICE_NAMES[o.type] }));
+    row.addEventListener('click', () => { S.filters.q = 'from:' + o.a; S.postLimit = 20; refresh(); $('posts').scrollIntoView({ block: 'nearest' }); });
+    host.append(row);
+  }
+  const lists = $('voiceLists'); lists.textContent = '';
+  const v = voicesOf(current());
+  lists.append(h('div', null, h('b', { text: VOICE_NAMES.owned + ': ' }), v.owned.length ? v.owned.join(', ') : 'no accounts listed yet, so nothing is counted here'),
+    h('div', null, h('b', { text: VOICE_NAMES.press + ': ' }), 'an account whose name contains ' + v.press.join(', ')),
+    h('div', null, h('b', { text: VOICE_NAMES.audience + ': ' }), 'everyone else'));
+  if (S.mode === 'site') lists.append(h('div', null, 'To change these lists, edit "voices" in config.json in the repository.'));
+}
+
+/* ---------- Conversation map ---------- */
+function renderMap(A) {
+  const host = $('mapChart'); host.textContent = '';
+  const tblHost = $('mapTable'); tblHost.textContent = '';
+  const W = Math.max(280, host.clientWidth), small = W < 520, H = small ? 360 : Math.round(Math.min(480, Math.max(340, W * 0.46)));
+  const keep = small ? 14 : 26;
+  const nodes = A.net.nodes.slice(0, keep).map(o => Object.assign({}, o));
+  if (nodes.length < 3) { host.append(h('p', { class: 'sub', text: 'Not enough repeated words in this view to draw a map.' })); return; }
+  const links = A.net.links.filter(l => l.a < nodes.length && l.b < nodes.length).slice(0, small ? 26 : 60);
+  const maxN = nodes[0].n, maxL = links.length ? links[0].n : 1;
+  nodes.forEach((o, i) => {
+    o.r = 6 + 12 * Math.sqrt(o.n / maxN); o.w = Math.max(o.r * 2, o.k.length * 6.8 + 10) / 2; o.hh = o.r + 9;
+    const a = i * 2.39996, rad = 0.4 * Math.sqrt((i + 0.5) / nodes.length);
+    o.x = W / 2 + Math.cos(a) * rad * W; o.y = H / 2 + Math.sin(a) * rad * H;
+  });
+  const clamp = o => { o.x = Math.min(W - o.w - 4, Math.max(o.w + 4, o.x)); o.y = Math.min(H - o.r - 20, Math.max(o.r + 6, o.y)); };
+  /* Spread the words over the whole panel: every pair pushes apart, linked pairs pull together. */
+  const k = 0.9 * Math.sqrt(W * H / nodes.length), sx = Math.sqrt(W / H);
+  let temp = W / 6;
+  for (let it = 0; it < 320; it++) {
+    const move = nodes.map(() => [0, 0]);
+    for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {
+      const dx = (nodes[j].x - nodes[i].x) / sx, dy = (nodes[j].y - nodes[i].y) * sx, d = Math.max(1, Math.sqrt(dx * dx + dy * dy)), f = k * k / d;
+      move[i][0] -= dx / d * f; move[i][1] -= dy / d * f; move[j][0] += dx / d * f; move[j][1] += dy / d * f;
+    }
+    for (const l of links) {
+      const dx = (nodes[l.b].x - nodes[l.a].x) / sx, dy = (nodes[l.b].y - nodes[l.a].y) * sx, d = Math.max(1, Math.sqrt(dx * dx + dy * dy)), f = d * d / k * (0.08 + 0.3 * l.n / maxL);
+      move[l.a][0] += dx / d * f; move[l.a][1] += dy / d * f; move[l.b][0] -= dx / d * f; move[l.b][1] -= dy / d * f;
+    }
+    nodes.forEach((o, i) => {
+      const gx = (W / 2 - o.x) * 0.02, gy = (H / 2 - o.y) * 0.02, mx = move[i][0] * sx + gx * k, my = move[i][1] / sx + gy * k, len = Math.max(1, Math.sqrt(mx * mx + my * my)), cap = Math.min(len, temp);
+      o.x += mx / len * cap; o.y += my / len * cap; clamp(o);
+    });
+    temp *= 0.985;
+  }
+  for (let it = 0; it < 60; it++) for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {
+    const a = nodes[i], b = nodes[j], dx = b.x - a.x, dy = (b.y + 8) - (a.y + 8), ox = a.w + b.w + 6 - Math.abs(dx), oy = a.hh + b.hh + 4 - Math.abs(dy);
+    if (ox > 0 && oy > 0) {
+      if (ox < oy) { const p = ox / 2 * (dx < 0 ? -1 : 1); a.x -= p; b.x += p; } else { const p = oy / 2 * (dy < 0 ? -1 : 1); a.y -= p; b.y += p; }
+      clamp(a); clamp(b);
+    }
+  }
+  const svg = s('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: 'group', 'aria-label': 'Map of words that appear together' });
+  const lineEls = links.map(l => { const el = s('line', { x1: nodes[l.a].x, y1: nodes[l.a].y, x2: nodes[l.b].x, y2: nodes[l.b].y, stroke: 'var(--axis)', 'stroke-width': (1 + 4 * l.n / maxL).toFixed(1), 'stroke-linecap': 'round' }); svg.append(el); return el; });
+  const groups = nodes.map((o, i) => {
+    const g = s('g', { class: 'node', tabindex: 0, role: 'button', 'aria-label': o.k + ', ' + o.n + ' posts' });
+    g.append(s('circle', { cx: o.x, cy: o.y, r: Math.max(o.r, 12), fill: 'transparent' }));
+    g.append(s('circle', { cx: o.x, cy: o.y, r: o.r, fill: 'var(--series)', stroke: 'var(--surface)', 'stroke-width': 2 }));
+    g.append(s('text', { x: o.x, y: o.y + o.r + 13, 'text-anchor': 'middle' }, o.k));
+    const mates = links.filter(l => l.a === i || l.b === i).map(l => ({ k: nodes[l.a === i ? l.b : l.a].k, i: l.a === i ? l.b : l.a, n: l.n }));
+    const on = () => {
+      const near = new Set(mates.map(x => x.i).concat([i]));
+      groups.forEach((el, j) => el.setAttribute('opacity', near.has(j) ? 1 : 0.25));
+      lineEls.forEach((el, j) => el.setAttribute('opacity', links[j].a === i || links[j].b === i ? 1 : 0.15));
+      const box = svg.getBoundingClientRect();
+      showTip(box.left + o.x * box.width / W, box.top + (o.y - o.r) * box.height / H, t => {
+        t.append(h('div', { class: 't-head', text: o.k }), tipRow('Posts using it', fmt(o.n)));
+        for (const x of mates.slice(0, 3)) t.append(tipRow('with ' + x.k, fmt(x.n)));
+      });
+    };
+    const off = () => { groups.forEach(el => el.setAttribute('opacity', 1)); lineEls.forEach(el => el.setAttribute('opacity', 1)); hideTip(); };
+    const go = () => { hideTip(); S.filters.q = o.k; S.postLimit = 20; refresh(); $('posts').scrollIntoView({ block: 'nearest' }); };
+    g.addEventListener('pointerenter', on); g.addEventListener('focus', on); g.addEventListener('pointerleave', off); g.addEventListener('blur', off);
+    g.addEventListener('click', go); g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+    return g;
+  });
+  groups.forEach(g => svg.append(g));
+  host.append(svg);
+  const tb = h('table', null, h('thead', null, h('tr', null, ...['Word', 'Appears with', 'Posts together'].map(t => h('th', { text: t })))));
+  const body = h('tbody');
+  for (const l of links.slice(0, 15)) { const row = h('tr', null, ...[nodes[l.a].k, nodes[l.b].k, fmt(l.n)].map(v => h('td', { text: v }))); row.children[1].style.textAlign = 'left'; body.append(row); }
+  tb.append(body); tblHost.append(tb);
+}
+
+/* ---------- Head to head ---------- */
+function partsToMentions(parts) {
+  const out = [], seen = new Set();
+  for (const p of parts) for (const r of p.rows || []) { const m = unpackRow(r); if (!seen.has(m.key)) { seen.add(m.key); out.push(m); } }
+  return out;
+}
+function compareMentions(id) {
+  if (S.mode === 'db') {
+    const hit = S.cmp.get(id);
+    if (hit) return hit.mentions;
+    if (!S.cmpLoading.has(id)) {
+      S.cmpLoading.add(id);
+      S.db.collection('projects/' + id + '/parts').limit(1000).get()
+        .then(snap => S.cmp.set(id, { mentions: partsToMentions(snap.docs.map(d => d.data())) }), () => S.cmp.set(id, { mentions: [] }))
+        .then(() => { S.cmpLoading.delete(id); refreshSoon(); });
+    }
+    return null;
+  }
+  if (S.mode === 'site') { if (!S.siteLoaded.has(id)) { loadSiteData(id); return null; } if (S.siteLoading.has(id)) return null; }
+  const parts = S.local.get(id) || [], sig = parts.length + ':' + parts.reduce((n, p) => n + (p.n || 0), 0);
+  const hit = S.cmp.get(id);
+  if (hit && hit.parts === parts && hit.sig === sig) return hit.mentions;
+  const mentions = partsToMentions(parts);
+  S.cmp.set(id, { parts, sig, mentions });
+  return mentions;
+}
+function compareChart(host, A, B, pa, pb, byRelease) {
+  host.textContent = '';
+  const relDay = p => Math.floor(Date.parse(p.release + 'T00:00:00Z') / 1000 / DAY);
+  const offA = byRelease ? relDay(pa) : 0, offB = byRelease ? relDay(pb) : 0;
+  let x0 = Infinity, x1 = -Infinity;
+  for (const d of A.daily.keys()) { x0 = Math.min(x0, d - offA); x1 = Math.max(x1, d - offA); }
+  for (const d of B.daily.keys()) { x0 = Math.min(x0, d - offB); x1 = Math.max(x1, d - offB); }
+  if (x1 < x0) { host.append(h('p', { class: 'sub', text: 'No dated posts to compare in this view.' })); return; }
+  const W = Math.max(280, host.clientWidth), H = 240, ends = W >= 640, m = { l: 46, r: ends ? 170 : 12, t: 22, b: 28 };
+  const pw = W - m.l - m.r, ph = H - m.t - m.b;
+  const step = [1, 7, 30, 90].find(k => Math.ceil((x1 - x0 + 1) / k) <= Math.max(8, Math.floor(pw / 5))) || 90;
+  const start = Math.floor(x0 / step) * step, n = Math.floor((x1 - start) / step) + 1, slot = pw / n;
+  const fill = (daily, off) => { const arr = new Array(n).fill(0); for (const [d, v] of daily) arr[Math.floor((d - off - start) / step)] += v; return arr; };
+  const sa = fill(A.daily, offA), sb = fill(B.daily, offB);
+  const max = niceMax(Math.max(1, ...sa, ...sb));
+  const X = i => m.l + (i + 0.5) * slot, Y = v => m.t + ph - v / max * ph;
+  const dayName = v => v === 0 ? 'Release day' : 'Day ' + (v > 0 ? '+' : '−') + Math.abs(v);
+  const label = (i, long) => { const v = start + i * step; return byRelease ? (step === 1 ? dayName(v) : dayName(v) + ' to ' + dayName(v + step - 1).replace('Day ', '').replace('Release day', '0')) : bucketLabel({ t: v * DAY }, step, long); };
+  const svg = s('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H, tabindex: 0, role: 'img', 'aria-label': 'Posts over time for both films. Use the arrow keys to read each period.' });
+  for (let k = 0; k <= 4; k++) {
+    const v = max * k / 4, y = Y(v);
+    svg.append(s('line', { x1: m.l, x2: W - m.r, y1: y, y2: y, stroke: k ? 'var(--line)' : 'var(--axis)', 'stroke-width': 1 }));
+    svg.append(s('text', { x: m.l - 8, y: y + 4, 'text-anchor': 'end' }, compact(v)));
+  }
+  const ticks = Math.min(n, Math.max(2, Math.floor(pw / 100))), used = new Set();
+  for (let k = 0; k < ticks; k++) {
+    const i = ticks === 1 ? 0 : Math.round(k * (n - 1) / (ticks - 1));
+    if (used.has(i)) continue; used.add(i);
+    const v = start + i * step;
+    svg.append(s('text', { x: X(i), y: H - 8, 'text-anchor': k === 0 ? 'start' : k === ticks - 1 ? 'end' : 'middle' }, byRelease ? (v === 0 ? '0' : (v > 0 ? '+' : '−') + Math.abs(v)) + (k === 0 ? ' days' : '') : fShort(v * DAY)));
+  }
+  if (byRelease && start <= 0 && start + n * step > 0) {
+    const x = X(Math.floor((0 - start) / step));
+    svg.append(s('line', { x1: x, x2: x, y1: m.t - 4, y2: Y(0), stroke: 'var(--ink-2)', 'stroke-width': 1, 'stroke-opacity': 0.55 }));
+    svg.append(s('text', { x: x + (x > W - m.r - 70 ? -6 : 6), y: m.t - 8, class: 'strong', 'text-anchor': x > W - m.r - 70 ? 'end' : 'start' }, 'Release'));
+  }
+  const draw = (arr, color) => {
+    if (n > 1) svg.append(s('path', { d: 'M' + arr.map((v, i) => `${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join('L'), fill: 'none', stroke: `var(--${color})`, 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+    svg.append(s('circle', { cx: X(n - 1), cy: Y(arr[n - 1]), r: 4.5, fill: `var(--${color})`, stroke: 'var(--surface)', 'stroke-width': 2 }));
+  };
+  draw(sb, 'series-2'); draw(sa, 'series');
+  if (ends) {
+    let ya = Y(sa[n - 1]) + 4, yb = Y(sb[n - 1]) + 4;
+    if (Math.abs(ya - yb) < 15) { const mid = (ya + yb) / 2, up = ya <= yb; ya = mid + (up ? -8 : 8); yb = mid + (up ? 8 : -8); }
+    const short = t => (t.length > 22 ? t.slice(0, 21) + '…' : t);
+    svg.append(s('text', { x: X(n - 1) + 10, y: ya, class: 'strong' }, short(pa.title)));
+    svg.append(s('text', { x: X(n - 1) + 10, y: yb, class: 'strong' }, short(pb.title)));
+  }
+  const cross = s('line', { y1: m.t, y2: Y(0), stroke: 'var(--muted)', 'stroke-width': 1, visibility: 'hidden' });
+  svg.append(cross);
+  let at = -1;
+  const show = i => {
+    at = Math.max(0, Math.min(n - 1, i));
+    cross.setAttribute('x1', X(at)); cross.setAttribute('x2', X(at)); cross.setAttribute('visibility', 'visible');
+    const box = svg.getBoundingClientRect();
+    showTip(box.left + X(at) * box.width / W, box.top + Y(Math.max(sa[at], sb[at])) * box.height / H, t => t.append(h('div', { class: 't-head', text: label(at, true) }), tipRow(pa.title, fmt(sa[at]), 'series'), tipRow(pb.title, fmt(sb[at]), 'series-2')));
+  };
+  const off = () => { cross.setAttribute('visibility', 'hidden'); hideTip(); };
+  svg.addEventListener('pointermove', e => { const box = svg.getBoundingClientRect(); show(Math.floor(((e.clientX - box.left) * W / box.width - m.l) / slot)); });
+  svg.addEventListener('pointerleave', off); svg.addEventListener('blur', off);
+  svg.addEventListener('focus', () => show(at < 0 ? n - 1 : at));
+  svg.addEventListener('keydown', e => { if (e.key === 'ArrowLeft') { show(at - 1); e.preventDefault(); } else if (e.key === 'ArrowRight') { show(at + 1); e.preventDefault(); } });
+  host.append(svg);
+}
+function renderCompare(A, project, maxBuckets) {
+  const panel = $('cmpPanel');
+  const others = [...S.projects.values()].filter(p => p.id !== S.currentId);
+  if (isExample() || !project || !others.length) { panel.hidden = true; return; }
+  panel.hidden = false;
+  if (S.compareId === undefined || S.compareId === S.currentId || (S.compareId && !S.projects.has(S.compareId))) S.compareId = others[0].id;
+  const sel = $('cmpSelect'); sel.textContent = '';
+  sel.append(h('option', { value: '', text: 'Nothing' }));
+  for (const p of others) sel.append(h('option', { value: p.id, text: p.title || 'Untitled' }));
+  sel.value = S.compareId;
+  const other = S.compareId ? S.projects.get(S.compareId) : null, body = $('cmpBody'), empty = $('cmpEmpty');
+  const say = text => { body.hidden = true; empty.hidden = false; empty.textContent = text; };
+  if (!other) return say('Choose a second film to line up against this one.');
+  const mB = compareMentions(other.id);
+  if (!mB) return say('Loading ' + other.title + '.');
+  if (!mB.length) return say('No posts on file for ' + other.title + ' yet.');
+  const cxB = contextFor(other, mB), B = analyze(applyFilters(mB, S.filters, other, cxB), other, maxBuckets, cxB), total = A.n + B.n;
+  if (!total) return say('No posts from either film match these filters.');
+  body.hidden = false; empty.hidden = true;
+  const sov = $('cmpSov'); sov.textContent = '';
+  sov.append(h('div', { class: 'sov-labels' }, h('span', null, h('b', { text: project.title }), ' ' + pct(A.n, total) + '% · ' + fmt(A.n) + ' posts'), h('span', null, h('b', { text: other.title }), ' ' + pct(B.n, total) + '% · ' + fmt(B.n) + ' posts')),
+    h('div', { class: 'sov-bar', role: 'img', 'aria-label': 'Share of voice' }, h('i', { style: `width:${A.n / total * 100}%` }), h('i', { style: `width:${B.n / total * 100}%` })));
+  const lg = $('cmpLegend'); lg.textContent = '';
+  lg.append(h('span', null, h('i', { class: 'key-line', style: 'background: var(--series)' }), project.title), h('span', null, h('i', { class: 'key-line', style: 'background: var(--series-2)' }), other.title));
+  const both = !!(project.release && other.release), byRelease = both && S.cmpAlign === 'release';
+  $('cmpByRelease').disabled = !both;
+  $('cmpByRelease').setAttribute('aria-pressed', byRelease); $('cmpByDate').setAttribute('aria-pressed', !byRelease);
+  compareChart($('cmpChart'), A, B, project, other, byRelease);
+  const net = X => { const v = pct(X.pos, X.n) - pct(X.neg, X.n); return (v > 0 ? '+' : '') + v; };
+  const share = (list, name, X) => { const d = list.find(o => o.k === name); return d ? pct(d.n, X.n) + '%' : 'not tracked'; };
+  const union = (a, b) => [...new Set(a.map(o => o.k).concat(b.map(o => o.k)))];
+  const rows = [['Posts', fmt(A.n), fmt(B.n)], ['Share of voice', pct(A.n, total) + '%', pct(B.n, total) + '%'], ['People posting', fmt(A.authors.size), fmt(B.authors.size)],
+    ['Engagement per post', A.n ? (A.eng / A.n).toFixed(1) : '0', B.n ? (B.eng / B.n).toFixed(1) : '0'], ['Net sentiment', net(A), net(B)],
+    ['Drivers, as a share of posts'], ...union(A.drivers, B.drivers).map(k => [k, share(A.drivers, k, A), share(B.drivers, k, B)]),
+    ['Emotions, as a share of posts'], ...union(A.emotions, B.emotions).map(k => [k, share(A.emotions, k, A), share(B.emotions, k, B)]),
+    ['Who is talking, as a share of posts'], ...['owned', 'press', 'audience'].map(k => [VOICE_NAMES[k], pct(A.voices[k].n, A.n) + '%', pct(B.voices[k].n, B.n) + '%'])];
+  const tb = h('table', { class: 'cmp-table' }, h('thead', null, h('tr', null, h('th', { text: '' }), h('th', { text: project.title }), h('th', { text: other.title }))));
+  const tbody = h('tbody');
+  for (const r of rows) tbody.append(r.length === 1 ? h('tr', null, h('th', { colspan: 3, text: r[0], style: 'text-align: left; padding-top: 12px' })) : h('tr', null, ...r.map(v => h('td', { text: v }))));
+  tb.append(tbody); $('cmpTable').textContent = ''; $('cmpTable').append(tb);
+}
+
 /* ---------- Rendering ---------- */
 let lastA = null, lastList = [];
 function setNotice() {
@@ -996,6 +1513,7 @@ function renderFilters(all, project) {
   const fr = $('fRange'), fp = $('fPlatform');
   const opts = [['all', 'All dates'], ['7', 'Last 7 days of data'], ['30', 'Last 30 days of data']];
   if (project && project.release) opts.push(['post', 'Since release'], ['pre', 'Before release']);
+  if (S.filters.range === 'custom') opts.push(['custom', fShort(S.filters.from) + ' to ' + fShort(S.filters.to - DAY)]);
   if (!opts.some(o => o[0] === S.filters.range)) S.filters.range = 'all';
   fr.textContent = ''; for (const [v, t] of opts) fr.append(h('option', { value: v, text: t }));
   fr.value = S.filters.range;
@@ -1011,9 +1529,16 @@ function renderFilters(all, project) {
   for (const d of compiled) fd.append(h('option', { value: d.name, text: d.name }));
   fd.append(h('option', { value: NONE, text: 'No driver matched' }));
   fd.value = S.filters.driver;
+  const fe = $('fEmotion');
+  if (S.filters.emotion && S.filters.emotion !== NONE && !CX.emotions.some(e => e.name === S.filters.emotion)) S.filters.emotion = '';
+  fe.textContent = ''; fe.append(h('option', { value: '', text: 'Any emotion' }));
+  for (const e of CX.emotions) fe.append(h('option', { value: e.name, text: e.name }));
+  fe.append(h('option', { value: NONE, text: 'No emotion words' }));
+  fe.value = S.filters.emotion;
+  $('fVoice').value = S.filters.voice;
   if (document.activeElement !== $('fQuery')) $('fQuery').value = S.filters.q;
   const f = S.filters;
-  $('fClear').hidden = !(f.range !== 'all' || f.platform || f.sent !== '' || f.driver || f.q);
+  $('fClear').hidden = !(f.range !== 'all' || f.platform || f.sent !== '' || f.driver || f.emotion || f.voice || f.q);
 }
 function sentimentMethod(list) {
   return S.sentSource === 'export' ? 'Sentiment labels come from your export.' : S.sentSource === 'mixed' ? 'Some sentiment labels come from your export; the rest are estimated from wording.' : 'Sentiment is estimated from the wording of each post with a simple word list. Treat it as a rough guide; it misses sarcasm.';
@@ -1041,8 +1566,10 @@ function refresh() {
   renderFilters(all, project);
   const list = applyFilters(all, S.filters, project);
   const host = $('volChart');
-  const A = analyze(list, project, Math.max(8, Math.floor((Math.max(280, host.clientWidth) - 58) / 5)));
+  const maxBuckets = Math.max(8, Math.floor((Math.max(280, host.clientWidth) - 58) / 5));
+  const A = analyze(list, project, maxBuckets);
   lastA = A; lastList = list;
+  const marks = momentsOf(project);
 
   const tiles = $('tiles'); tiles.textContent = '';
   const tile = (label, value, note) => tiles.append(h('div', { class: 'tile' }, h('div', { class: 'label', text: label }), h('div', { class: 'value', text: value }), h('div', { class: 'note', text: note })));
@@ -1053,8 +1580,11 @@ function refresh() {
   tile('Net sentiment', (net > 0 ? '+' : '') + net, pct(A.pos, A.n) + '% positive, ' + pct(A.neg, A.n) + '% negative');
 
   $('volSub').textContent = A.buckets.length ? (A.step === 1 ? 'Per day' : 'Per ' + A.step + ' days') + (A.undated ? ', ' + fmt(A.undated) + ' undated posts left out' : '') : '';
-  timeChart(host, A, 'vol', project);
-  timeChart($('sentChart'), A, 'sent', project);
+  timeChart(host, A, 'vol', project, marks);
+  timeChart($('sentChart'), A, 'sent', project, marks);
+  renderMoments(project, S.filters.range === 'all' ? list : applyFilters(all, Object.assign({}, S.filters, { range: 'all' }), project), marks);
+  renderCompare(A, project, maxBuckets);
+  renderEmotions(A); renderVoices(A); renderMap(A);
   const lg = $('sentLegend'); lg.textContent = '';
   for (const [cls, name, v] of [['pos', 'Positive', A.pos], ['neu', 'Neutral', A.neu], ['neg', 'Negative', A.neg]]) lg.append(h('span', null, h('i', { class: 'sw ' + cls }), name + ' ' + pct(v, A.n) + '%'));
   $('sentMethod').textContent = sentimentMethod(list);
@@ -1082,7 +1612,8 @@ function renderPosts(list) {
       h('div', { class: 'post-meta' }, h('b', { text: m.p }), h('span', { text: m.t !== null ? fLong(m.t) : 'No date' }), m.a ? h('span', { text: m.a }) : null,
         h('span', null, h('i', { class: 'dot', style: `background: var(--${cls})` }), m.s > 0 ? 'Positive' : m.s < 0 ? 'Negative' : 'Neutral'),
         m.e ? h('span', { text: fmt(m.e) + (m.e === 1 ? ' engagement' : ' engagements') }) : null,
-        driverTags(m).length ? h('span', { text: driverTags(m).map(i => compiled[i].name).join(', ') }) : null),
+        driverTags(m).length ? h('span', { text: driverTags(m).map(i => compiled[i].name).join(', ') }) : null,
+        m._em.length ? h('span', { text: m._em.map(i => CX.emotions[i].name).join(', ') }) : null),
       h('div', { class: 'post-text', text: m.x }),
       m.u ? h('a', { href: m.u, target: '_blank', rel: 'noopener noreferrer', text: 'Open the post' }) : null));
   }
@@ -1160,12 +1691,13 @@ function selectProject(id) {
   if (S.unsubParts) { S.unsubParts(); S.unsubParts = null; }
   if (S.unsubReadout) { S.unsubReadout(); S.unsubReadout = null; }
   if (abort) abort.abort();
+  if (S.compareId === id) S.compareId = undefined;
   S.currentId = id; S.parts = []; S.mentions = []; S.readout = null; S.draft = null; S.streaming = false;
-  S.filters = { range: 'all', platform: '', sent: '', driver: '', q: '' }; S.postLimit = 20; S.loadingParts = false;
+  S.filters = blankFilters(); S.postLimit = 20; S.loadingParts = false;
   $('addDataPanel').hidden = true; resetMapping();
   if (id === EXAMPLE.id) { S.mentions = exampleMentions(); S.sentSource = 'estimated'; }
   else if (id && S.mode === 'local') { S.parts = S.local.get(id) || []; rebuildMentions(); }
-  else if (id && S.mode === 'site') { store.set('project', id); S.parts = S.local.get(id) || []; rebuildMentions(); if (!S.siteLoaded.has(id)) loadSiteData(id); }
+  else if (id && S.mode === 'site') { store.set('project', id); S.parts = S.local.get(id) || []; rebuildMentions(); S.loadingParts = S.siteLoading.has(id); if (!S.siteLoaded.has(id)) loadSiteData(id); }
   else if (id && S.mode === 'db') {
     store.set('project', id);
     S.loadingParts = true;
@@ -1312,6 +1844,8 @@ function scopeLabel() {
   if (f.platform) bits.push(f.platform);
   if (f.sent !== '') bits.push(['negative', 'neutral', 'positive'][+f.sent + 1] + ' only');
   if (f.driver) bits.push(f.driver === NONE ? 'posts matching no driver' : 'driver: ' + f.driver);
+  if (f.emotion) bits.push(f.emotion === NONE ? 'posts with no emotion words' : 'emotion: ' + f.emotion);
+  if (f.voice) bits.push(VOICE_NAMES[f.voice].toLowerCase() + ' only');
   if (f.q) bits.push('mentioning "' + f.q + '"');
   return bits.length ? bits.join(', ') : 'all posts';
 }
@@ -1332,6 +1866,9 @@ function buildPrompt(A, list, project) {
     'Scope of this readout: ' + scopeLabel() + '; ' + A.n + ' posts' + (A.minT !== null ? ' from ' + fLong(A.minT) + ' to ' + fLong(A.maxT) : ''),
     'Sentiment: ' + pct(A.pos, A.n) + '% positive, ' + pct(A.neu, A.n) + '% neutral, ' + pct(A.neg, A.n) + '% negative. ' + sentimentMethod(list),
     'Drivers (keyword tags; a post can match several): ' + A.drivers.map(d => d.k + ' ' + d.n + ' (' + pct(d.n, A.n) + '%)').join(', ') + '; no driver matched ' + A.none.n,
+    'Emotions (word lists; a post can match several): ' + A.emotions.map(e => e.k + ' ' + e.n + ' (' + pct(e.n, A.n) + '%)').join(', '),
+    'Who is talking: ' + ['owned', 'press', 'audience'].map(k => A.voices[k].k + ' ' + pct(A.voices[k].n, A.n) + '%').join(', '),
+    'Key moments listed by the team: ' + (momentsOf(project).map(e => e.date + ' ' + e.label).join('; ') || 'none'),
     'Platforms: ' + A.platformList.map(p => p.k + ' ' + p.n).join(', '),
     'Most used words: ' + A.words.map(w => w.k + ' ' + w.n).join(', '),
     'Most used phrases: ' + A.phrases.map(w => w.k + ' ' + w.n).join(', '),
@@ -1425,9 +1962,27 @@ $('fRange').addEventListener('change', e => setFilter('range', e.target.value));
 $('fPlatform').addEventListener('change', e => setFilter('platform', e.target.value));
 $('fSent').addEventListener('change', e => setFilter('sent', e.target.value));
 $('fDriver').addEventListener('change', e => setFilter('driver', e.target.value));
+$('fEmotion').addEventListener('change', e => setFilter('emotion', e.target.value));
+$('fVoice').addEventListener('change', e => setFilter('voice', e.target.value));
+$('cmpSelect').addEventListener('change', e => { S.compareId = e.target.value; refresh(); });
+$('cmpByRelease').addEventListener('click', () => { S.cmpAlign = 'release'; refresh(); });
+$('cmpByDate').addEventListener('click', () => { S.cmpAlign = 'date'; refresh(); });
+$('voiceByPosts').addEventListener('click', () => { S.voiceSort = 'n'; refresh(); });
+$('voiceByEng').addEventListener('click', () => { S.voiceSort = 'eng'; refresh(); });
+$('momSave').addEventListener('click', async () => {
+  const st = $('momStatus'), project = current(), events = parseMomentText($('momEdit').value);
+  if (!project) return;
+  st.className = 'status'; st.textContent = 'Saving';
+  try {
+    if (S.mode === 'db') await S.db.doc('projects/' + S.currentId).update({ events });
+    project.events = events; $('momEdit').dataset.key = '';
+    st.textContent = 'Saved ' + events.length + (events.length === 1 ? ' moment.' : ' moments.');
+  } catch (e) { st.className = 'status err'; st.textContent = dbMessage(e); }
+  refresh();
+});
 let qTimer = 0;
 $('fQuery').addEventListener('input', e => { clearTimeout(qTimer); const v = e.target.value.trim(); qTimer = setTimeout(() => setFilter('q', v), 220); });
-$('fClear').addEventListener('click', () => { S.filters = { range: 'all', platform: '', sent: '', driver: '', q: '' }; S.postLimit = 20; $('fQuery').value = ''; refresh(); });
+$('fClear').addEventListener('click', () => { S.filters = blankFilters(); S.postLimit = 20; $('fQuery').value = ''; refresh(); });
 $('kwWords').addEventListener('click', () => { S.kw = 'words'; refresh(); });
 $('kwPhrases').addEventListener('click', () => { S.kw = 'phrases'; refresh(); });
 $('postSort').addEventListener('change', () => { S.postLimit = 20; renderPosts(lastList); });
@@ -1466,7 +2021,8 @@ addEventListener('scroll', hideTip, { passive: true });
 
 /* ---------- Site mode: hosted outside Claude (GitHub Pages), reading the collector's files from the same site ---------- */
 async function loadSiteData(id) {
-  S.siteLoaded.add(id); S.loadingParts = true; refreshSoon();
+  S.siteLoaded.add(id); S.siteLoading.add(id);
+  if (S.currentId === id) { S.loadingParts = true; refreshSoon(); }
   try {
     const res = await fetch('data/' + id + '/posts.csv', { cache: 'no-store' });
     if (res.ok) {
@@ -1496,8 +2052,8 @@ async function loadSiteData(id) {
       S.local.set(id, (S.local.get(id) || []).filter(p => p.upload !== key).concat([part]));
     }
   } catch (e) { /* no uploads folder for this project */ }
-  S.loadingParts = false;
-  if (S.currentId === id) { S.parts = S.local.get(id) || []; rebuildMentions(); }
+  S.siteLoading.delete(id);
+  if (S.currentId === id) { S.loadingParts = false; S.parts = S.local.get(id) || []; rebuildMentions(); }
   refreshSoon();
 }
 async function enterSite() {
@@ -1509,7 +2065,7 @@ async function enterSite() {
     if (!list.length) return false;
     for (const p of list) {
       const terms = (p.queries || []).concat((p.hashtags || []).map(t => '#' + String(t).replace(/^#/, ''))).join(', ');
-      S.projects.set(p.slug, { id: p.slug, title: String(p.title || p.slug), terms, release: /^\d{4}-\d{2}-\d{2}$/.test(p.release || '') ? p.release : '', at: '', drivers: p.drivers });
+      S.projects.set(p.slug, { id: p.slug, title: String(p.title || p.slug), terms, release: /^\d{4}-\d{2}-\d{2}$/.test(p.release || '') ? p.release : '', at: '', drivers: p.drivers, events: p.events, voices: p.voices, emotions: p.emotions });
       S.local.set(p.slug, []);
     }
     try { const run = await (await fetch('data/last-run.json', { cache: 'no-store' })).json(); S.lastRun = String(run.ran_at || ''); } catch (e) { /* optional */ }

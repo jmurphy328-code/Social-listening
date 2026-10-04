@@ -6,14 +6,44 @@
       "title": "The Odyssey",
       "queries": ["\"The Odyssey\" Nolan", "\"The Odyssey\" movie"],
       "hashtags": ["TheOdyssey"],
-      "since": "2026-07-01",
+      "since": "2025-07-01",
       "release": "2026-07-17",
       "drivers": {
         "Cast": ["cast", "casting", "actor*", "actress*", "performance*", "starring", "matt damon", "damon", "mattdamon", "tom holland", "holland", "tomholland", "anne hathaway", "hathaway", "annehathaway", "zendaya", "robert pattinson", "pattinson", "robertpattinson", "lupita", "nyong'o", "charlize", "theron", "bernthal", "samantha morton", "himesh patel", "elliot page", "elliotpage", "safdie", "leguizamo", "bill irwin"],
         "Director": ["nolan", "christophernolan", "director", "directed", "directing", "direction", "filmmaker"],
         "How it was made": ["imax", "70mm", "70 mm", "65mm", "shot on", "film cameras", "cinematograph*", "hoytema", "hoyte", "göransson", "goransson", "score", "soundtrack", "sound design", "practical effects", "visual effects", "vfx", "cgi", "stunt*", "costume*", "production design", "behind the scenes", "filming", "filmed", "on location", "budget", "aspect ratio"],
         "Marketing": ["trailer*", "teaser*", "poster*", "marketing", "promo*", "campaign", "press tour", "premiere", "red carpet", "interview*", "presale*", "pre sale", "advance tickets", "tickets on sale", "year in advance", "sold out", "merch*", "popcorn bucket", "billboard*", "tv spot", "featurette", "first look"]
-      }
+      },
+      "events": [
+        {"date": "2025-07-01", "label": "Teaser trailer in theaters (date approximate)"},
+        {"date": "2025-07-17", "label": "IMAX 70mm tickets on sale, a year ahead"},
+        {"date": "2025-12-12", "label": "Six-minute prologue in IMAX"},
+        {"date": "2025-12-22", "label": "Teaser trailer online"},
+        {"date": "2026-01-25", "label": "AFC Championship TV spot"},
+        {"date": "2026-06-04", "label": "Premium format tickets on sale"},
+        {"date": "2026-07-06", "label": "World premiere, London"},
+        {"date": "2026-07-14", "label": "New York premiere"},
+        {"date": "2026-08-14", "label": "China release"}
+      ],
+      "voices": {"owned": ["universalpictures", "universalpics", "theodysseymovie", "odysseymovie", "imax", "syncopy"]}
+    },
+    {
+      "slug": "spider-man-brand-new-day",
+      "title": "Spider-Man: Brand New Day",
+      "queries": ["\"Spider-Man: Brand New Day\"", "\"Brand New Day\" Spider-Man"],
+      "hashtags": ["SpiderManBrandNewDay"],
+      "since": "2025-07-01",
+      "release": "2026-07-31",
+      "drivers": {
+        "Cast": ["cast", "casting", "actor*", "actress*", "performance*", "starring", "tom holland", "holland", "tomholland", "zendaya", "sadie sink", "sadiesink", "jacob batalon", "batalon", "jon bernthal", "bernthal", "florence pugh", "pugh", "florencepugh", "tramell tillman", "tillman", "marisa tomei", "tomei", "mark ruffalo", "ruffalo", "markruffalo", "michael mando", "mando", "colón-zayas", "colon-zayas", "naomi watts"],
+        "Director": ["cretton", "destin daniel cretton", "destindanielcretton", "director", "directed", "directing", "direction", "filmmaker"],
+        "How it was made": ["imax", "suit", "score", "giacchino", "soundtrack", "sound design", "cinematograph*", "pawlak", "glasgow", "set photos", "set video", "practical effects", "visual effects", "vfx", "cgi", "stunt*", "costume*", "production design", "behind the scenes", "filming", "filmed", "on location", "budget"],
+        "Marketing": ["trailer*", "teaser*", "poster*", "marketing", "promo*", "campaign", "press tour", "premiere", "red carpet", "interview*", "presale*", "pre sale", "advance tickets", "tickets on sale", "year in advance", "sold out", "merch*", "popcorn bucket", "billboard*", "tv spot", "featurette", "first look", "suit reveal"]
+      },
+      "events": [
+        {"date": "2026-07-27", "label": "World premiere, Los Angeles"}
+      ],
+      "voices": {"owned": ["sonypictures", "spidermanmovie", "marvelstudios", "marvelentertainment"]}
     }
   ]
 }
