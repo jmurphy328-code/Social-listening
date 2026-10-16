@@ -1,5 +1,5 @@
 {
-  "ran_at": "2026-10-15T09:44:54Z",
+  "ran_at": "2026-10-16T09:43:38Z",
   "projects": [
     {
       "slug": "the-odyssey",
@@ -25,11 +25,11 @@
         },
         "wikipedia": {
           "status": "ok",
-          "found": 471,
+          "found": 472,
           "new": 1
         }
       },
-      "total": 2340
+      "total": 2342
     },
     {
       "slug": "spider-man-brand-new-day",
@@ -55,11 +55,11 @@
         },
         "wikipedia": {
           "status": "ok",
-          "found": 471,
+          "found": 472,
           "new": 1
         }
       },
-      "total": 1531
+      "total": 1535
     }
   ]
 }
