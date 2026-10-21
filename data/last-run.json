@@ -1,5 +1,5 @@
 {
-  "ran_at": "2026-10-21T16:02:30Z",
+  "ran_at": "2026-10-21T16:25:11Z",
   "projects": [
     {
       "slug": "the-odyssey",
@@ -21,7 +21,7 @@
         "mastodon": {
           "status": "ok",
           "found": 149,
-          "new": 0
+          "new": 1
         },
         "lemmy": {
           "status": "ok",
@@ -33,8 +33,10 @@
           "note": "add the TUMBLR_API_KEY secret"
         },
         "news": {
-          "status": "error",
-          "note": "api.gdeltproject.org answered 429"
+          "status": "partial",
+          "found": 785,
+          "new": 785,
+          "note": "25 of 32 date ranges missed (api.gdeltproject.org answered 429); they are asked again next run"
         },
         "wikipedia": {
           "status": "ok",
@@ -42,7 +44,7 @@
           "new": 0
         }
       },
-      "total": 3935
+      "total": 4687
     },
     {
       "slug": "spider-man-brand-new-day",
@@ -76,8 +78,10 @@
           "note": "add the TUMBLR_API_KEY secret"
         },
         "news": {
-          "status": "error",
-          "note": "api.gdeltproject.org answered 429"
+          "status": "partial",
+          "found": 710,
+          "new": 710,
+          "note": "28 of 32 date ranges missed (api.gdeltproject.org answered 429); they are asked again next run"
         },
         "wikipedia": {
           "status": "ok",
@@ -85,7 +89,7 @@
           "new": 0
         }
       },
-      "total": 2333
+      "total": 3025
     }
   ]
 }
