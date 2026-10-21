@@ -2,8 +2,10 @@
 """Collect public posts about each project in config.json from free sources.
 
 Sources: YouTube (videos and comments), Reddit (posts and comments),
-Bluesky (posts) and Mastodon (hashtag posts). Each source runs only when
-its key is present; a missing key is reported as "skipped", never an error.
+Bluesky (posts), Mastodon (hashtag posts across several servers), Lemmy
+(posts and comments), Tumblr (tagged posts) and Google News (headlines).
+Each source runs only when its key is present; a missing key is reported
+as "skipped", never an error.
 
 Results are merged into data/<slug>/posts.jsonl (one record per line, the
 full history) and data/<slug>/posts.csv (the file to add to the Listening
@@ -23,6 +25,8 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import xml.etree.ElementTree as ET
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -36,7 +40,10 @@ DEFAULT_LIMITS = {
     "reddit_comment_posts": 10,
     "bluesky_pages": 5,
     "mastodon_pages": 5,
+    "lemmy_pages": 3,
+    "tumblr_pages": 5,
 }
+DEFAULT_MASTODON_INSTANCES = ["mastodon.social", "mastodon.online", "mstdn.social", "mas.to", "mastodon.world"]
 
 
 class Skip(Exception):
@@ -80,6 +87,45 @@ def http(url, *, params=None, headers=None, data=None, json_body=None, timeout=3
                 continue
             raise SourceError(f"{host} could not be reached: {err}") from None
     raise SourceError(f"{host} could not be reached")
+
+
+def http_text(url, *, params=None, timeout=30):
+    """GET and return the body as text (for RSS feeds)."""
+    host = urllib.parse.urlsplit(url).netloc
+    if params:
+        url += ("&" if "?" in url else "?") + urllib.parse.urlencode(params, doseq=True)
+    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as res:
+                return res.read().decode("utf-8", "replace")
+        except urllib.error.HTTPError as err:
+            if err.code in (429, 500, 502, 503, 504) and attempt < 2:
+                time.sleep(5 * (attempt + 1))
+                continue
+            raise SourceError(f"{host} answered {err.code}") from None
+        except (urllib.error.URLError, TimeoutError) as err:
+            if attempt < 2:
+                time.sleep(3)
+                continue
+            raise SourceError(f"{host} could not be reached: {err}") from None
+    raise SourceError(f"{host} could not be reached")
+
+
+def relevant(project, text):
+    """True when the project has no "relevance" words, or the text has one of them.
+
+    Used by the sources that search loosely (Lemmy, Tumblr), where a
+    title like "The Odyssey" also catches Homer."""
+    words = [w.lower() for w in project.get("relevance", []) if str(w).strip()]
+    low = str(text or "").lower()
+    return not words or any(w in low for w in words)
+
+
+def plain_terms(project, key):
+    """Search terms for sources without phrase search: the project's own list, else its title."""
+    terms = project.get(key) or [project.get("title", "")]
+    return [str(t).replace('"', "").strip() for t in terms if str(t).replace('"', "").strip()]
 
 
 def clean(text, limit=1000):
@@ -270,38 +316,165 @@ def collect_bluesky(project, since_iso, limits, first_run):
 
 # ---------- Mastodon ----------
 
+def mastodon_instances(project):
+    listed = project.get("mastodon_instances") or ([project["mastodon_instance"]] if project.get("mastodon_instance") else DEFAULT_MASTODON_INSTANCES)
+    return [str(i).strip().strip("/").removeprefix("https://") for i in listed if str(i).strip()]
+
+
 def collect_mastodon(project, since_iso, limits, first_run):
+    """Hashtag timelines from several servers. Each server only sees the posts that reach it,
+    so asking several finds more; a post seen on two servers is kept once (same uri)."""
     tags = [tag.lstrip("#") for tag in project.get("hashtags", []) if tag.strip("# ")]
     if not tags:
         raise Skip("add a hashtag to the project in config.json")
-    instance = project.get("mastodon_instance", "mastodon.social")
+    instances = mastodon_instances(project)
     token = os.environ.get("MASTODON_TOKEN", "").strip()
-    auth = {"Authorization": "Bearer " + token} if token else {}
+    found, refused, failed = {}, [], []
+    for n, instance in enumerate(instances):
+        auth = {"Authorization": "Bearer " + token} if token and n == 0 else {}  # the token belongs to the first server
+        try:
+            for tag in tags:
+                max_id = None
+                for _ in range(limits["mastodon_pages"]):
+                    params = {"limit": 40}
+                    if max_id:
+                        params["max_id"] = max_id
+                    statuses = http(f"https://{instance}/api/v1/timelines/tag/{urllib.parse.quote(tag)}", params=params, headers=auth)
+                    if not isinstance(statuses, list) or not statuses:
+                        break
+                    for st in statuses:
+                        rid = "masto:" + str(st.get("uri") or st.get("id"))
+                        engagement = sum(number(st.get(k)) for k in ("favourites_count", "reblogs_count", "replies_count"))
+                        rec_ = record(rid, "Mastodon", "post", st.get("created_at"), (st.get("account") or {}).get("acct"),
+                                      strip_html(st.get("content")), engagement, st.get("url") or st.get("uri") or "", "#" + tag)
+                        if rid not in found or rec_["engagement"] > found[rid]["engagement"]:
+                            found[rid] = rec_  # servers count engagement differently; keep the fullest count
+                    max_id = statuses[-1].get("id")
+                    if to_iso(statuses[-1].get("created_at")) < since_iso:
+                        break
+                    if first_run:
+                        time.sleep(0.3)  # a deep pass asks for many pages; stay well inside the server's rate limit
+        except SourceError as err:
+            (refused if re.search(r"answered (401|403|422)", str(err)) else failed).append(f"{instance} ({err})")
+    if not found and (refused or failed) and len(refused) + len(failed) == len(instances):
+        if refused and not failed:
+            raise Skip("every server wants a login for hashtag pages; add the MASTODON_TOKEN secret")
+        raise SourceError("; ".join(refused + failed))
+    return list(found.values())
+
+
+# ---------- Lemmy (no key) ----------
+
+def collect_lemmy(project, since_iso, limits, first_run):
+    """Posts and comments from Lemmy's search. lemmy.world federates with most of the network."""
+    instance = str(project.get("lemmy_instance", "lemmy.world")).strip().strip("/").removeprefix("https://")
+    found = []
+    for term in plain_terms(project, "lemmy_queries"):
+        for kind in ("Posts", "Comments"):
+            for page in range(1, limits["lemmy_pages"] + 1):
+                res = http(f"https://{instance}/api/v3/search",
+                           params={"q": term, "type_": kind, "sort": "New", "listing_type": "All", "limit": 50, "page": page})
+                items = res.get("posts" if kind == "Posts" else "comments") or []
+                oldest = None
+                for item in items:
+                    creator, counts = item.get("creator") or {}, item.get("counts") or {}
+                    author = creator.get("name", "")
+                    if kind == "Posts":
+                        p = item.get("post") or {}
+                        text = p.get("name", "") + (" | " + str(p.get("body"))[:400] if p.get("body") else "")
+                        rec_ = record("lemmy:" + str(p.get("ap_id") or p.get("id")), "Lemmy", "post", p.get("published"), author, text,
+                                      number(counts.get("score")) + number(counts.get("comments")), p.get("ap_id") or "", term)
+                    else:
+                        c, parent = item.get("comment") or {}, item.get("post") or {}
+                        rec_ = record("lemmy:" + str(c.get("ap_id") or c.get("id")), "Lemmy", "comment", c.get("published"), author,
+                                      c.get("content"), number(counts.get("score")) + number(counts.get("child_count")),
+                                      c.get("ap_id") or "", (parent.get("name") or term)[:80])
+                    oldest = rec_["date"] if not oldest or (rec_["date"] and rec_["date"] < oldest) else oldest
+                    context = rec_["text"] + " " + (item.get("post") or {}).get("name", "") + " " + (item.get("community") or {}).get("name", "")
+                    if relevant(project, context):
+                        found.append(rec_)
+                if len(items) < 50 or (oldest and oldest < since_iso):
+                    break
+                time.sleep(0.5)
+    return found
+
+
+# ---------- Tumblr (free key) ----------
+
+def collect_tumblr(project, since_iso, limits, first_run):
+    key = os.environ.get("TUMBLR_API_KEY", "").strip()
+    if not key:
+        raise Skip("add the TUMBLR_API_KEY secret")
+    tags = project.get("tumblr_tags") or [t.lstrip("#") for t in project.get("hashtags", [])]
+    since_ts = dt.datetime.fromisoformat(since_iso.replace("Z", "+00:00")).timestamp() if since_iso else 0
     found = []
     for tag in tags:
-        max_id = None
-        for _ in range(limits["mastodon_pages"]):
-            params = {"limit": 40}
-            if max_id:
-                params["max_id"] = max_id
+        before = None
+        for _ in range(limits["tumblr_pages"]):
+            params = {"tag": tag, "api_key": key, "limit": 20, "filter": "text"}
+            if before:
+                params["before"] = before
+            posts = http("https://api.tumblr.com/v2/tagged", params=params).get("response") or []
+            if not isinstance(posts, list) or not posts:
+                break
+            for p in posts:
+                parts = [p.get("title"), p.get("summary"), p.get("body"), p.get("caption"), p.get("text")]
+                text = " | ".join(dict.fromkeys(strip_html(x) for x in parts if x and strip_html(x)))
+                if not text and p.get("tags"):
+                    text = " ".join("#" + t for t in p["tags"])
+                if relevant(project, text + " " + " ".join(p.get("tags") or [])):
+                    found.append(record("tumblr:" + str(p.get("id_string") or p.get("id")), "Tumblr", "post", p.get("timestamp"),
+                                        p.get("blog_name"), text, p.get("note_count"), p.get("post_url") or "", "#" + tag))
+            before = min(number(p.get("timestamp")) for p in posts)
+            if before < since_ts:
+                break
+            time.sleep(0.5)
+    return found
+
+
+# ---------- Google News (no key; headlines, not posts) ----------
+
+def month_windows(since_iso, now):
+    start = dt.date.fromisoformat(since_iso[:10])
+    end = now.date() + dt.timedelta(days=1)
+    while start < end:
+        nxt = (start.replace(day=1) + dt.timedelta(days=32)).replace(day=1)
+        yield start, min(nxt, end)
+        start = nxt
+
+
+def collect_news(project, since_iso, limits, first_run, now=None):
+    """Headlines from Google News search. A feed holds about 100 items, so a deep pass asks month by month."""
+    now = now or dt.datetime.now(dt.timezone.utc)
+    queries = project.get("news_queries") or project.get("queries", [])
+    if not queries:
+        raise Skip("add queries to the project in config.json")
+    found = []
+    for query in queries:
+        if first_run:
+            windows = [f"{query} after:{a} before:{b}" for a, b in month_windows(since_iso, now)]
+        else:
+            days = max(1, (now - dt.datetime.fromisoformat(since_iso.replace("Z", "+00:00"))).days + 1)
+            windows = [f"{query} when:{days}d"]
+        for q in windows:
+            feed = http_text("https://news.google.com/rss/search", params={"q": q, "hl": "en-US", "gl": "US", "ceid": "US:en"})
             try:
-                statuses = http(f"https://{instance}/api/v1/timelines/tag/{urllib.parse.quote(tag)}", params=params, headers=auth)
-            except SourceError as err:
-                if not token and re.search(r"answered (401|403|422)", str(err)):
-                    raise Skip(f"{instance} wants a login for hashtag pages; add the MASTODON_TOKEN secret") from None
-                raise
-            if not isinstance(statuses, list) or not statuses:
-                break
-            for st in statuses:
-                engagement = sum(number(st.get(k)) for k in ("favourites_count", "reblogs_count", "replies_count"))
-                found.append(record("masto:" + str(st.get("uri") or st.get("id")), "Mastodon", "post", st.get("created_at"),
-                                    (st.get("account") or {}).get("acct"), strip_html(st.get("content")), engagement,
-                                    st.get("url") or st.get("uri") or "", "#" + tag))
-            max_id = statuses[-1].get("id")
-            if to_iso(statuses[-1].get("created_at")) < since_iso:
-                break
-            if first_run:
-                time.sleep(0.3)  # a deep pass asks for many pages; stay well inside the server's rate limit
+                root = ET.fromstring(feed)
+            except ET.ParseError:
+                raise SourceError("news.google.com sent a feed that could not be read") from None
+            for item in root.iter("item"):
+                title, link = item.findtext("title") or "", item.findtext("link") or ""
+                outlet = item.findtext("source") or ""
+                if outlet and title.endswith(" - " + outlet):
+                    title = title[: -len(" - " + outlet)]
+                try:
+                    when = parsedate_to_datetime(item.findtext("pubDate") or "").timestamp()
+                except (TypeError, ValueError):
+                    continue
+                if title:  # the query already narrows to the film, so no relevance filter here
+                    found.append(record("news:" + (item.findtext("guid") or link), "News", "article", when, outlet, title, 0, link, query))
+            if len(windows) > 1:
+                time.sleep(1)
     return found
 
 
@@ -335,7 +508,8 @@ def save_pageviews(folder, days):
     return max(0, len(days) - max(0, had))
 
 
-SOURCES = {"youtube": collect_youtube, "reddit": collect_reddit, "bluesky": collect_bluesky, "mastodon": collect_mastodon}
+SOURCES = {"youtube": collect_youtube, "reddit": collect_reddit, "bluesky": collect_bluesky, "mastodon": collect_mastodon,
+           "lemmy": collect_lemmy, "tumblr": collect_tumblr, "news": collect_news}
 
 
 # ---------- storage ----------
@@ -362,8 +536,22 @@ def save_posts(folder, posts):
         writer.writerows(ordered)
 
 
-PLATFORM_NAMES = {"youtube": "YouTube", "reddit": "Reddit", "bluesky": "Bluesky", "mastodon": "Mastodon"}
-DEEP_PAGES = {"mastodon_pages": 30, "bluesky_pages": 4, "reddit_pages": 2}
+PLATFORM_NAMES = {"youtube": "YouTube", "reddit": "Reddit", "bluesky": "Bluesky", "mastodon": "Mastodon",
+                  "lemmy": "Lemmy", "tumblr": "Tumblr", "news": "News"}
+DEEP_PAGES = {"mastodon_pages": 30, "bluesky_pages": 4, "reddit_pages": 2, "lemmy_pages": 4, "tumblr_pages": 20}
+
+
+def source_signature(name, project):
+    """What a source is asked for. When this changes, the source gets a deep pass back to "since"."""
+    if name == "mastodon":
+        return json.dumps([sorted(project.get("hashtags", [])), mastodon_instances(project)])
+    if name == "lemmy":
+        return json.dumps([plain_terms(project, "lemmy_queries"), project.get("lemmy_instance", "lemmy.world")])
+    if name == "tumblr":
+        return json.dumps(sorted(project.get("tumblr_tags") or project.get("hashtags", [])))
+    if name == "news":
+        return json.dumps(project.get("news_queries") or project.get("queries", []))
+    return ""  # the original sources: a deep pass only when they have nothing on file
 
 
 def run_project(project, config, now):
@@ -387,14 +575,21 @@ def run_project(project, config, now):
     state = json.loads(state_path.read_text(encoding="utf-8")) if state_path.exists() else {}
     moved_earlier = bool(posts) and bool(start) and start < state.get("since", "9999")
     report = {"slug": slug, "title": project.get("title", slug), "since": start or lookback, "sources": {}}
+    signatures = dict(state.get("signatures", {}))
     for name, collect in SOURCES.items():
         if name in project.get("skip_sources", []):
             report["sources"][name] = {"status": "skipped", "note": "turned off in config.json"}
             continue
-        fresh = moved_earlier or not any(rec["platform"] == PLATFORM_NAMES.get(name) for rec in posts.values())
+        signature = source_signature(name, project)
+        changed = bool(signature) and state.get("signatures", {}).get(name) != signature
+        fresh = moved_earlier or changed or not any(rec["platform"] == PLATFORM_NAMES.get(name) for rec in posts.values())
         since_iso = (start or lookback) if fresh else max(start, lookback)
         try:
-            found = [rec for rec in collect(project, since_iso, deep_limits if fresh else limits, fresh) if keep(rec, start or "")]
+            args = (project, since_iso, deep_limits if fresh else limits, fresh)
+            gathered = collect(*args, now=now) if name == "news" else collect(*args)
+            found = [rec for rec in gathered if keep(rec, start or "")]
+            if signature:
+                signatures[name] = signature
             new = sum(1 for rec in found if rec["id"] not in posts)
             posts.update({rec["id"]: rec for rec in found})
             report["sources"][name] = {"status": "ok", "found": len(found), "new": new}
@@ -410,7 +605,7 @@ def run_project(project, config, now):
     except SourceError as err:
         report["sources"]["wikipedia"] = {"status": "error", "note": str(err)}
     save_posts(folder, posts)
-    state_path.write_text(json.dumps({"since": start}) + "\n", encoding="utf-8")
+    state_path.write_text(json.dumps({"since": start, "signatures": signatures}) + "\n", encoding="utf-8")
     report["total"] = len(posts)
     return report
 

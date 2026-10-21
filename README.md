@@ -13,7 +13,10 @@ The site reads the collected posts straight from this repository, so it updates 
 | YouTube | Videos that match your search terms, plus their top comments | A free API key |
 | Reddit | Posts that match, plus top comments on the busiest ones | A free app registration (Reddit reviews new apps) |
 | Bluesky | Posts that match your terms and hashtags | A free account and an app password |
-| Mastodon | Posts using your hashtags | Nothing, unless the server asks for a login |
+| Mastodon | Posts using your hashtags, from five servers (each sees different posts) | Nothing, unless a server asks for a login |
+| Lemmy | Posts and comments that mention the film, filtered by `relevance` | Nothing |
+| Google News | Headlines and outlets covering the film, month by month back to `since` | Nothing |
+| Tumblr | Posts carrying the film's tags (big for fandom, cast and edits) | A free API key |
 
 A source with no key is skipped, not failed. Add keys one at a time and the collector picks them up on the next run.
 
@@ -79,6 +82,10 @@ Edit `config.json` (the pencil icon on GitHub). Saving the file starts a new col
 - `queries` are the searches run on YouTube, Reddit and Bluesky. Put a title in quotes and add a word that separates it from other things with the same name.
 - `hashtags` are followed on Mastodon and Bluesky. Leave off the `#`.
 - `since` is the earliest date to keep, as `YYYY-MM-DD`.
+- `mastodon_instances` is optional: the servers to read hashtags from. Defaults to mastodon.social, mastodon.online, mstdn.social, mas.to and mastodon.world.
+- `lemmy_queries` are plain words for Lemmy's search (no quotes); defaults to the title. `tumblr_tags` are Tumblr tags, spaces allowed; defaults to `hashtags`. `news_queries` replaces `queries` for Google News.
+- `relevance` is a list of words; a Lemmy or Tumblr post is kept only if it contains one. It keeps out the Homer, the album and anything else sharing the title.
+- Adding a hashtag, tag, query or server gives that source one deep pass back to `since` on the next run.
 - `release` is optional: the release or premiere date, as `YYYY-MM-DD`. The site marks it on the volume chart.
 - `wikipedia` is the title of the film's English Wikipedia article, as it appears in the page address, for example `The_Odyssey_(2026_film)`. With it set, the collector fetches daily pageviews.
 - `drivers` are the word lists the site uses to tag each post by research area (cast, director, how it was made, marketing). A post is tagged when it contains one of the words or phrases, and can carry more than one tag. End a word with `*` to match any ending (`trailer*` matches trailer and trailers). Add, rename or remove drivers freely, up to 12. Hashtags are matched as one word, so add `mattdamon` as well as `matt damon`.
@@ -98,6 +105,7 @@ Keys go in **Settings > Secrets and variables > Actions > New repository secret*
 | `YOUTUBE_API_KEY` | Google Cloud Console: create a project, enable "YouTube Data API v3", then Credentials > Create credentials > API key |
 | `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET` | reddit.com/prefs/apps: create an app of type "script" |
 | `BLUESKY_HANDLE`, `BLUESKY_APP_PASSWORD` | Bluesky: Settings > Privacy and security > App passwords. Use an app password, not your main password |
+| `TUMBLR_API_KEY` | tumblr.com/oauth/apps: register an application (any name and website), then copy the "OAuth Consumer Key". No review, works straight away |
 | `MASTODON_TOKEN` | Only if the run summary asks for it: on your Mastodon server, Preferences > Development > New application, with the `read` scope |
 
 ## Run it

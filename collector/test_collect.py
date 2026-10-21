@@ -124,6 +124,81 @@ class Sources(unittest.TestCase):
         self.assertEqual(found[0]["url"], "https://m.example/@a/9")
 
 
+    def test_mastodon_asks_several_servers_and_keeps_each_post_once(self):
+        status = {"id": "9", "uri": "https://m.example/users/a/statuses/9", "url": "https://m.example/@a/9", "created_at": "2026-09-14T13:22:00Z",
+                  "account": {"acct": "a@m.example"}, "content": "<p>Loved #TestFilm</p>", "favourites_count": 1}
+
+        def answer(url, kw):
+            if "max_id" in str(kw.get("params")):
+                return []
+            if "two.example" in url:
+                return [dict(status, favourites_count=5), dict(status, id="10", uri="https://two.example/s/10", url="https://two.example/@b/10")]
+            raise collect.SourceError("three.example answered 401")
+        project = {**PROJECT, "mastodon_instances": ["one.example", "two.example", "three.example"]}
+        fake = router([("one.example", lambda url, kw: [] if "max_id" in str(kw.get("params")) else [status]), ("/timelines/tag/", answer)])
+        with mock.patch.object(collect, "http", fake):
+            found = collect.collect_mastodon(project, SINCE, LIMITS, False)
+        by_id = {r["id"]: r for r in found}
+        self.assertEqual(len(found), 2)  # the shared post once, a server that refused is passed over
+        self.assertEqual(by_id["masto:https://m.example/users/a/statuses/9"]["engagement"], 5)
+
+    def test_mastodon_all_servers_refuse(self):
+        def refuse(url, kw):
+            raise collect.SourceError("x answered 401")
+        with mock.patch.object(collect, "http", router([("/timelines/tag/", refuse)])), self.assertRaises(collect.Skip):
+            collect.collect_mastodon(PROJECT, SINCE, LIMITS, False)
+
+    def test_lemmy(self):
+        project = {**PROJECT, "relevance": ["film"]}
+        posts = {"posts": [
+            {"post": {"id": 1, "name": "Test Film is great", "body": "Saw it twice", "published": "2026-09-10T10:00:00.123456Z", "ap_id": "https://lemmy.world/post/1"},
+             "creator": {"name": "fan"}, "counts": {"score": 12, "comments": 3}, "community": {"name": "movies"}},
+            {"post": {"id": 2, "name": "Test Film... I mean the Homer poem", "published": "2026-09-11T10:00:00Z", "ap_id": "https://x/post/2"},
+             "creator": {"name": "classicist"}, "counts": {"score": 1}, "community": {"name": "books"}}]}
+        comments = {"comments": [{"comment": {"id": 5, "content": "Agreed, the score", "published": "2026-09-12T10:00:00Z", "ap_id": "https://lemmy.world/comment/5"},
+                                  "post": {"name": "Test Film discussion thread"}, "creator": {"name": "b"}, "counts": {"score": 4, "child_count": 1}}]}
+        fake = router([("/api/v3/search", lambda url, kw: posts if kw["params"]["type_"] == "Posts" else comments)])
+        with mock.patch.object(collect, "http", fake):
+            found = collect.collect_lemmy(project, SINCE, LIMITS, False)
+        by_id = {r["id"]: r for r in found}
+        self.assertEqual(by_id["lemmy:https://lemmy.world/post/1"]["engagement"], 15)
+        self.assertEqual(by_id["lemmy:https://lemmy.world/comment/5"]["type"], "comment")  # kept because its thread mentions the film
+        self.assertEqual(len(found), 3)  # relevance needs "film": "Test Film" itself contains it
+        self.assertEqual(fake.calls[0][1]["params"]["q"], "Test Film")  # no lemmy_queries, so the title
+
+    def test_tumblr(self):
+        with mock.patch.dict(os.environ, {"TUMBLR_API_KEY": ""}), self.assertRaises(collect.Skip):
+            collect.collect_tumblr(PROJECT, SINCE, LIMITS, False)
+        page = {"response": [
+            {"id_string": "77", "timestamp": 1789392120, "blog_name": "fanblog", "summary": "Test Film made me cry", "body": "<p>Test Film made me cry</p>",
+             "note_count": 40, "post_url": "https://fanblog.tumblr.com/post/77", "tags": ["test film"]},
+            {"id_string": "78", "timestamp": 1780000000, "blog_name": "old", "summary": "old", "note_count": 1, "post_url": "u"}]}
+        fake = router([("api.tumblr.com", lambda url, kw: {"response": []} if "before" in kw["params"] and kw["params"]["before"] < 1780000001 else page)])
+        with mock.patch.object(collect, "http", fake), mock.patch.dict(os.environ, {"TUMBLR_API_KEY": "k"}):
+            found = collect.collect_tumblr(PROJECT, SINCE, LIMITS, False)
+        self.assertEqual(found[0]["text"], "Test Film made me cry")
+        self.assertEqual(found[0]["engagement"], 40)
+        self.assertEqual(len(fake.calls), 1)  # the page reached back past "since", so no second page
+
+    def test_news(self):
+        feed = """<?xml version="1.0"?><rss><channel>
+          <item><title>Test Film tops box office - Variety</title><link>https://news.example/a</link><guid>g1</guid>
+            <pubDate>Mon, 14 Sep 2026 13:22:00 GMT</pubDate><source url="https://variety.com">Variety</source></item>
+        </channel></rss>"""
+        asked = []
+        with mock.patch.object(collect, "http_text", lambda url, params: asked.append(params["q"]) or feed):
+            now = dt.datetime(2026, 10, 20, tzinfo=dt.timezone.utc)
+            found = collect.collect_news(PROJECT, SINCE, LIMITS, True, now=now)
+            self.assertEqual(asked, ["test film after:2026-09-01 before:2026-10-01", "test film after:2026-10-01 before:2026-10-21"])
+            del asked[:]
+            collect.collect_news(PROJECT, "2026-10-06T00:00:00Z", LIMITS, False, now=now)
+            self.assertEqual(asked, ["test film when:15d"])
+        self.assertEqual(found[0]["text"], "Test Film tops box office")
+        self.assertEqual(found[0]["author"], "Variety")
+        self.assertEqual(found[0]["date"], "2026-09-14T13:22:00Z")
+        self.assertEqual(found[0]["platform"], "News")
+
+
 class Runs(unittest.TestCase):
     def test_merge_report_and_csv(self):
         old = collect.record("x:1", "Bluesky", "post", "2026-08-01T00:00:00Z", "a", "too early", 1, "", "q")
@@ -138,13 +213,13 @@ class Runs(unittest.TestCase):
             raise collect.SourceError("host answered 500")
         with tempfile.TemporaryDirectory() as tmp, mock.patch.object(collect, "ROOT", Path(tmp)):
             now = dt.datetime(2026, 9, 20, tzinfo=dt.timezone.utc)
-            with mock.patch.dict(collect.SOURCES, {"youtube": skip, "reddit": broken, "bluesky": lambda *a: first, "mastodon": skip}):
+            with mock.patch.dict(collect.SOURCES, clear=True, values={"youtube": skip, "reddit": broken, "bluesky": lambda *a: first, "mastodon": skip}):
                 rep = collect.run_project(PROJECT, {}, now)
             self.assertEqual(rep["sources"]["bluesky"], {"status": "ok", "found": 1, "new": 1})  # the August post is before "since"
             self.assertEqual(rep["sources"]["youtube"]["status"], "skipped")
             self.assertEqual(rep["sources"]["reddit"]["status"], "error")
             seen = {}
-            with mock.patch.dict(collect.SOURCES, {"youtube": skip, "reddit": skip, "mastodon": skip,
+            with mock.patch.dict(collect.SOURCES, clear=True, values={"youtube": skip, "reddit": skip, "mastodon": skip,
                                                    "bluesky": lambda project, since, limits, first_run: seen.update(since=since, first=first_run) or again}):
                 rep = collect.run_project(PROJECT, {"lookback_days": 7}, now)
             self.assertEqual(seen, {"since": "2026-09-13T00:00:00Z", "first": False})
@@ -171,19 +246,38 @@ class Runs(unittest.TestCase):
         now = dt.datetime(2026, 9, 20, tzinfo=dt.timezone.utc)
         with tempfile.TemporaryDirectory() as tmp, mock.patch.object(collect, "ROOT", Path(tmp)):
             only_masto = {"youtube": skip, "reddit": skip, "bluesky": skip, "mastodon": spy("Mastodon")}
-            with mock.patch.dict(collect.SOURCES, only_masto):
+            with mock.patch.dict(collect.SOURCES, only_masto, clear=True):
                 collect.run_project(PROJECT, {}, now)
                 collect.run_project(PROJECT, {}, now)
             self.assertEqual(seen, [("Mastodon", "2026-09-01T00:00:00Z", True, 150), ("Mastodon", "2026-09-06T00:00:00Z", False, 5)])
             del seen[:]
-            with mock.patch.dict(collect.SOURCES, {**only_masto, "youtube": spy("YouTube")}):
+            with mock.patch.dict(collect.SOURCES, clear=True, values={**only_masto, "youtube": spy("YouTube")}):
                 collect.run_project(PROJECT, {}, now)  # a source whose key was just added starts from the beginning
             self.assertEqual(seen, [("YouTube", "2026-09-01T00:00:00Z", True, 150), ("Mastodon", "2026-09-06T00:00:00Z", False, 5)])
             del seen[:]
-            with mock.patch.dict(collect.SOURCES, only_masto):
+            with mock.patch.dict(collect.SOURCES, only_masto, clear=True):
                 collect.run_project({**PROJECT, "since": "2026-07-01"}, {}, now)  # an earlier start date triggers one deep pass
                 collect.run_project({**PROJECT, "since": "2026-07-01"}, {}, now)
             self.assertEqual([(x[1], x[2]) for x in seen], [("2026-07-01T00:00:00Z", True), ("2026-09-06T00:00:00Z", False)])
+
+    def test_new_hashtag_triggers_a_deep_pass(self):
+        seen = []
+
+        def spy(project, since, limits, first_run):
+            seen.append(first_run)
+            return [collect.record("m:1", "Mastodon", "post", "2026-09-05T00:00:00Z", "a", "text", 0, "", "q")]
+
+        def skip(*args):
+            raise collect.Skip("no key")
+        now = dt.datetime(2026, 9, 20, tzinfo=dt.timezone.utc)
+        sources = {"mastodon": spy, "youtube": skip}
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(collect, "ROOT", Path(tmp)), \
+                mock.patch.dict(collect.SOURCES, sources, clear=True):
+            collect.run_project(PROJECT, {}, now)
+            collect.run_project(PROJECT, {}, now)
+            collect.run_project({**PROJECT, "hashtags": ["TestFilm", "TestFilmMovie"]}, {}, now)
+            collect.run_project({**PROJECT, "hashtags": ["TestFilm", "TestFilmMovie"]}, {}, now)
+        self.assertEqual(seen, [True, False, True, False])
 
     def test_bad_slug(self):
         with self.assertRaises(ValueError):
