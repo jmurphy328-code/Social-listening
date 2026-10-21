@@ -1,5 +1,5 @@
 {
-  "ran_at": "2026-10-21T16:25:11Z",
+  "ran_at": "2026-10-21T16:53:18Z",
   "projects": [
     {
       "slug": "the-odyssey",
@@ -20,7 +20,7 @@
         },
         "mastodon": {
           "status": "ok",
-          "found": 149,
+          "found": 150,
           "new": 1
         },
         "lemmy": {
@@ -34,9 +34,9 @@
         },
         "news": {
           "status": "partial",
-          "found": 785,
-          "new": 785,
-          "note": "25 of 32 date ranges missed (api.gdeltproject.org answered 429); they are asked again next run"
+          "found": 244,
+          "new": 0,
+          "note": "29 of 32 date ranges missed (api.gdeltproject.org answered 429); they are asked again next run"
         },
         "wikipedia": {
           "status": "ok",
@@ -44,7 +44,7 @@
           "new": 0
         }
       },
-      "total": 4687
+      "total": 4203
     },
     {
       "slug": "spider-man-brand-new-day",
@@ -65,8 +65,8 @@
         },
         "mastodon": {
           "status": "ok",
-          "found": 267,
-          "new": 0
+          "found": 266,
+          "new": 1
         },
         "lemmy": {
           "status": "ok",
@@ -79,9 +79,9 @@
         },
         "news": {
           "status": "partial",
-          "found": 710,
-          "new": 710,
-          "note": "28 of 32 date ranges missed (api.gdeltproject.org answered 429); they are asked again next run"
+          "found": 119,
+          "new": 0,
+          "note": "31 of 32 date ranges missed (api.gdeltproject.org answered 429); they are asked again next run"
         },
         "wikipedia": {
           "status": "ok",
@@ -89,7 +89,7 @@
           "new": 0
         }
       },
-      "total": 3025
+      "total": 2753
     }
   ]
 }
