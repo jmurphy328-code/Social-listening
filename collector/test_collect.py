@@ -196,8 +196,18 @@ class Sources(unittest.TestCase):
         self.assertEqual(found[0]["date"], "2026-09-14T13:22:00Z")
         self.assertEqual(found[0]["platform"], "News")
         with mock.patch.object(collect, "http_text", lambda url, params: "Please limit requests to one every 5 seconds"), \
-                self.assertRaises(collect.SourceError):
+                mock.patch.object(collect.time, "sleep", lambda s: None), self.assertRaises(collect.SourceError):
             collect.collect_news(PROJECT, SINCE, LIMITS, False, now=now)
+
+        def flaky(url, params):
+            if params["startdatetime"] == "20260901000000":
+                raise collect.SourceError("api.gdeltproject.org answered 429")
+            return body
+        with mock.patch.object(collect, "http_text", flaky), mock.patch.object(collect.time, "sleep", lambda s: None):
+            with self.assertRaises(collect.Partial) as part:
+                collect.collect_news(PROJECT, SINCE, LIMITS, True, now=now)
+        self.assertEqual(len(part.exception.found), 1)  # the second half of the month still came through
+        self.assertIn("1 of 2 date ranges missed", str(part.exception))
 
 class Runs(unittest.TestCase):
     def test_merge_report_and_csv(self):
@@ -259,6 +269,22 @@ class Runs(unittest.TestCase):
                 collect.run_project({**PROJECT, "since": "2026-07-01"}, {}, now)  # an earlier start date triggers one deep pass
                 collect.run_project({**PROJECT, "since": "2026-07-01"}, {}, now)
             self.assertEqual([(x[1], x[2]) for x in seen], [("2026-07-01T00:00:00Z", True), ("2026-09-06T00:00:00Z", False)])
+
+    def test_partial_source_keeps_posts_and_tries_again(self):
+        seen = []
+
+        def half(project, since, limits, first_run, now=None):
+            seen.append(first_run)
+            raise collect.Partial([collect.record("news:1", "News", "article", "2026-09-05T00:00:00Z", "a.com", "Headline", 0, "", "q")], "1 of 2 missed")
+        now = dt.datetime(2026, 9, 20, tzinfo=dt.timezone.utc)
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(collect, "ROOT", Path(tmp)), \
+                mock.patch.dict(collect.SOURCES, {"news": half}, clear=True):
+            rep = collect.run_project(PROJECT, {}, now)
+            collect.run_project(PROJECT, {}, now)
+        self.assertEqual(rep["sources"]["news"]["status"], "partial")
+        self.assertEqual(rep["total"], 1)
+        self.assertEqual(seen, [True, True])  # a partial deep pass is not marked done
+        self.assertIn("1 of 2 missed", collect.summary_markdown([rep], "now"))
 
     def test_new_hashtag_triggers_a_deep_pass(self):
         seen = []

@@ -52,6 +52,14 @@ class SourceError(Exception):
     """The source was set up but the request failed."""
 
 
+class Partial(Exception):
+    """Some requests worked and some did not. The posts found are kept; the source tries again in full next run."""
+
+    def __init__(self, found, note):
+        super().__init__(note)
+        self.found = found
+
+
 # ---------- helpers ----------
 
 def http(url, *, params=None, headers=None, data=None, json_body=None, timeout=30):
@@ -458,26 +466,43 @@ def collect_news(project, since_iso, limits, first_run, now=None):
     windows = list(half_month_windows(since_iso, now))
     if not first_run:
         windows = [(dt.date.fromisoformat(since_iso[:10]), now.date() + dt.timedelta(days=1))]
-    found, asked = [], 0
+    found, asked, missed, last_err = [], 0, 0, ""
     for query in queries:
         for start, end in windows:
-            if asked:
-                time.sleep(GDELT_PAUSE)
-            asked += 1
-            body = http_text("https://api.gdeltproject.org/api/v2/doc/doc", params={
-                "query": f"{query} sourcelang:english", "mode": "artlist", "format": "json", "maxrecords": 250,
-                "sort": "datedesc", "startdatetime": gdelt_stamp(start), "enddatetime": gdelt_stamp(end)})
-            if not body.strip():
-                continue  # GDELT sends an empty body when nothing matched
+            body = None
+            for wait in (0, 30, 90):  # GitHub's servers are shared, so GDELT may already be counting someone else's requests
+                if asked or wait:
+                    time.sleep(GDELT_PAUSE + wait)
+                asked += 1
+                try:
+                    body = http_text("https://api.gdeltproject.org/api/v2/doc/doc", params={
+                        "query": f"{query} sourcelang:english", "mode": "artlist", "format": "json", "maxrecords": 250,
+                        "sort": "datedesc", "startdatetime": gdelt_stamp(start), "enddatetime": gdelt_stamp(end)})
+                except SourceError as err:
+                    last_err = str(err)
+                    continue
+                if body.strip() and not body.lstrip().startswith("{"):
+                    last_err, body = "api.gdeltproject.org: " + clean(body, 160), None  # a "please slow down" page
+                    continue
+                break
+            if body is None:
+                missed += 1
+                continue
             try:
-                articles = json.loads(body).get("articles") or []
+                articles = json.loads(body).get("articles") or [] if body.strip() else []  # empty body: nothing matched
             except json.JSONDecodeError:
-                raise SourceError("api.gdeltproject.org: " + clean(body, 160)) from None
+                missed += 1
+                continue
             for art in articles:
                 seen = str(art.get("seendate", ""))
                 when = f"{seen[:4]}-{seen[4:6]}-{seen[6:8]}T{seen[9:11]}:{seen[11:13]}:{seen[13:15]}Z" if len(seen) >= 15 else ""
                 if art.get("title") and art.get("url"):
                     found.append(record("news:" + art["url"], "News", "article", when, art.get("domain"), art["title"], 0, art["url"], query))
+    total = len(queries) * len(windows)
+    if missed == total:
+        raise SourceError(last_err or "api.gdeltproject.org sent nothing usable")
+    if missed:
+        raise Partial(found, f"{missed} of {total} date ranges missed ({last_err}); they are asked again next run")
     return found
 
 
@@ -596,6 +621,11 @@ def run_project(project, config, now):
             new = sum(1 for rec in found if rec["id"] not in posts)
             posts.update({rec["id"]: rec for rec in found})
             report["sources"][name] = {"status": "ok", "found": len(found), "new": new}
+        except Partial as part:
+            found = [rec for rec in part.found if keep(rec, start or "")]
+            new = sum(1 for rec in found if rec["id"] not in posts)
+            posts.update({rec["id"]: rec for rec in found})
+            report["sources"][name] = {"status": "partial", "found": len(found), "new": new, "note": str(part)}
         except Skip as why:
             report["sources"][name] = {"status": "skipped", "note": str(why)}
         except SourceError as err:
@@ -622,6 +652,8 @@ def summary_markdown(reports, ran_at):
                 result = f"{res['found']:,} days of pageviews, {res['new']:,} new"
             elif res["status"] == "ok":
                 result = f"{res['found']:,} found, {res['new']:,} new"
+            elif res["status"] == "partial":
+                result = f"{res['found']:,} found, {res['new']:,} new; {res['note']}"
             else:
                 result = f"{res['status']}: {res['note']}"
             lines.append(f"| {name} | {result} |")
