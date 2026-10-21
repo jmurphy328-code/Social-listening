@@ -181,23 +181,23 @@ class Sources(unittest.TestCase):
         self.assertEqual(len(fake.calls), 1)  # the page reached back past "since", so no second page
 
     def test_news(self):
-        feed = """<?xml version="1.0"?><rss><channel>
-          <item><title>Test Film tops box office - Variety</title><link>https://news.example/a</link><guid>g1</guid>
-            <pubDate>Mon, 14 Sep 2026 13:22:00 GMT</pubDate><source url="https://variety.com">Variety</source></item>
-        </channel></rss>"""
+        body = json.dumps({"articles": [{"url": "https://variety.com/a", "title": "Test Film tops box office", "seendate": "20260914T132200Z", "domain": "variety.com"}]})
         asked = []
-        with mock.patch.object(collect, "http_text", lambda url, params: asked.append(params["q"]) or feed):
-            now = dt.datetime(2026, 10, 20, tzinfo=dt.timezone.utc)
+        with mock.patch.object(collect, "http_text", lambda url, params: asked.append((params["startdatetime"], params["enddatetime"])) or body), \
+                mock.patch.object(collect, "GDELT_PAUSE", 0):
+            now = dt.datetime(2026, 9, 20, tzinfo=dt.timezone.utc)
             found = collect.collect_news(PROJECT, SINCE, LIMITS, True, now=now)
-            self.assertEqual(asked, ["test film after:2026-09-01 before:2026-10-01", "test film after:2026-10-01 before:2026-10-21"])
+            self.assertEqual(asked, [("20260901000000", "20260916000000"), ("20260916000000", "20260921000000")])
             del asked[:]
-            collect.collect_news(PROJECT, "2026-10-06T00:00:00Z", LIMITS, False, now=now)
-            self.assertEqual(asked, ["test film when:15d"])
+            collect.collect_news(PROJECT, "2026-09-06T00:00:00Z", LIMITS, False, now=now)
+            self.assertEqual(asked, [("20260906000000", "20260921000000")])
         self.assertEqual(found[0]["text"], "Test Film tops box office")
-        self.assertEqual(found[0]["author"], "Variety")
+        self.assertEqual(found[0]["author"], "variety.com")
         self.assertEqual(found[0]["date"], "2026-09-14T13:22:00Z")
         self.assertEqual(found[0]["platform"], "News")
-
+        with mock.patch.object(collect, "http_text", lambda url, params: "Please limit requests to one every 5 seconds"), \
+                self.assertRaises(collect.SourceError):
+            collect.collect_news(PROJECT, SINCE, LIMITS, False, now=now)
 
 class Runs(unittest.TestCase):
     def test_merge_report_and_csv(self):

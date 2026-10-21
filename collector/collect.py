@@ -3,7 +3,7 @@
 
 Sources: YouTube (videos and comments), Reddit (posts and comments),
 Bluesky (posts), Mastodon (hashtag posts across several servers), Lemmy
-(posts and comments), Tumblr (tagged posts) and Google News (headlines).
+(posts and comments), Tumblr (tagged posts) and GDELT (news headlines).
 Each source runs only when its key is present; a missing key is reported
 as "skipped", never an error.
 
@@ -25,8 +25,6 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-import xml.etree.ElementTree as ET
-from email.utils import parsedate_to_datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -432,49 +430,54 @@ def collect_tumblr(project, since_iso, limits, first_run):
     return found
 
 
-# ---------- Google News (no key; headlines, not posts) ----------
+# ---------- News coverage from GDELT (no key; headlines, not posts) ----------
 
-def month_windows(since_iso, now):
+def half_month_windows(since_iso, now):
     start = dt.date.fromisoformat(since_iso[:10])
     end = now.date() + dt.timedelta(days=1)
     while start < end:
-        nxt = (start.replace(day=1) + dt.timedelta(days=32)).replace(day=1)
+        nxt = start.replace(day=16) if start.day < 16 else (start.replace(day=1) + dt.timedelta(days=32)).replace(day=1)
         yield start, min(nxt, end)
         start = nxt
 
 
+GDELT_PAUSE = 6  # GDELT asks for no more than one request every five seconds
+
+
+def gdelt_stamp(day):
+    return day.strftime("%Y%m%d") + "000000"
+
+
 def collect_news(project, since_iso, limits, first_run, now=None):
-    """Headlines from Google News search. A feed holds about 100 items, so a deep pass asks month by month."""
+    """English-language news articles from the GDELT index, a free research database of world news.
+    It returns up to 250 articles per request, so a deep pass asks half a month at a time."""
     now = now or dt.datetime.now(dt.timezone.utc)
-    queries = project.get("news_queries") or project.get("queries", [])
+    queries = project.get("news_queries") or project.get("queries", [])[:1]
     if not queries:
         raise Skip("add queries to the project in config.json")
-    found = []
+    windows = list(half_month_windows(since_iso, now))
+    if not first_run:
+        windows = [(dt.date.fromisoformat(since_iso[:10]), now.date() + dt.timedelta(days=1))]
+    found, asked = [], 0
     for query in queries:
-        if first_run:
-            windows = [f"{query} after:{a} before:{b}" for a, b in month_windows(since_iso, now)]
-        else:
-            days = max(1, (now - dt.datetime.fromisoformat(since_iso.replace("Z", "+00:00"))).days + 1)
-            windows = [f"{query} when:{days}d"]
-        for q in windows:
-            feed = http_text("https://news.google.com/rss/search", params={"q": q, "hl": "en-US", "gl": "US", "ceid": "US:en"})
+        for start, end in windows:
+            if asked:
+                time.sleep(GDELT_PAUSE)
+            asked += 1
+            body = http_text("https://api.gdeltproject.org/api/v2/doc/doc", params={
+                "query": f"{query} sourcelang:english", "mode": "artlist", "format": "json", "maxrecords": 250,
+                "sort": "datedesc", "startdatetime": gdelt_stamp(start), "enddatetime": gdelt_stamp(end)})
+            if not body.strip():
+                continue  # GDELT sends an empty body when nothing matched
             try:
-                root = ET.fromstring(feed)
-            except ET.ParseError:
-                raise SourceError("news.google.com sent a feed that could not be read") from None
-            for item in root.iter("item"):
-                title, link = item.findtext("title") or "", item.findtext("link") or ""
-                outlet = item.findtext("source") or ""
-                if outlet and title.endswith(" - " + outlet):
-                    title = title[: -len(" - " + outlet)]
-                try:
-                    when = parsedate_to_datetime(item.findtext("pubDate") or "").timestamp()
-                except (TypeError, ValueError):
-                    continue
-                if title:  # the query already narrows to the film, so no relevance filter here
-                    found.append(record("news:" + (item.findtext("guid") or link), "News", "article", when, outlet, title, 0, link, query))
-            if len(windows) > 1:
-                time.sleep(1)
+                articles = json.loads(body).get("articles") or []
+            except json.JSONDecodeError:
+                raise SourceError("api.gdeltproject.org: " + clean(body, 160)) from None
+            for art in articles:
+                seen = str(art.get("seendate", ""))
+                when = f"{seen[:4]}-{seen[4:6]}-{seen[6:8]}T{seen[9:11]}:{seen[11:13]}:{seen[13:15]}Z" if len(seen) >= 15 else ""
+                if art.get("title") and art.get("url"):
+                    found.append(record("news:" + art["url"], "News", "article", when, art.get("domain"), art["title"], 0, art["url"], query))
     return found
 
 
@@ -550,7 +553,7 @@ def source_signature(name, project):
     if name == "tumblr":
         return json.dumps(sorted(project.get("tumblr_tags") or project.get("hashtags", [])))
     if name == "news":
-        return json.dumps(project.get("news_queries") or project.get("queries", []))
+        return json.dumps(["gdelt", project.get("news_queries") or project.get("queries", [])[:1]])
     return ""  # the original sources: a deep pass only when they have nothing on file
 
 

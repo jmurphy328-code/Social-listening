@@ -15,7 +15,7 @@ The site reads the collected posts straight from this repository, so it updates 
 | Bluesky | Posts that match your terms and hashtags | A free account and an app password |
 | Mastodon | Posts using your hashtags, from five servers (each sees different posts) | Nothing, unless a server asks for a login |
 | Lemmy | Posts and comments that mention the film, filtered by `relevance` | Nothing |
-| Google News | Headlines and outlets covering the film, month by month back to `since` | Nothing |
+| News (GDELT) | English-language news headlines and outlets, half a month at a time back to `since` | Nothing |
 | Tumblr | Posts carrying the film's tags (big for fandom, cast and edits) | A free API key |
 
 A source with no key is skipped, not failed. Add keys one at a time and the collector picks them up on the next run.
@@ -83,7 +83,7 @@ Edit `config.json` (the pencil icon on GitHub). Saving the file starts a new col
 - `hashtags` are followed on Mastodon and Bluesky. Leave off the `#`.
 - `since` is the earliest date to keep, as `YYYY-MM-DD`.
 - `mastodon_instances` is optional: the servers to read hashtags from. Defaults to mastodon.social, mastodon.online, mstdn.social, mas.to and mastodon.world.
-- `lemmy_queries` are plain words for Lemmy's search (no quotes); defaults to the title. `tumblr_tags` are Tumblr tags, spaces allowed; defaults to `hashtags`. `news_queries` replaces `queries` for Google News.
+- `lemmy_queries` are plain words for Lemmy's search (no quotes); defaults to the title. `tumblr_tags` are Tumblr tags, spaces allowed; defaults to `hashtags`. `news_queries` are the news searches; they default to the first entry in `queries`.
 - `relevance` is a list of words; a Lemmy or Tumblr post is kept only if it contains one. It keeps out the Homer, the album and anything else sharing the title.
 - Adding a hashtag, tag, query or server gives that source one deep pass back to `since` on the next run.
 - `release` is optional: the release or premiere date, as `YYYY-MM-DD`. The site marks it on the volume chart.
