@@ -83,7 +83,7 @@ Edit `config.json` (the pencil icon on GitHub). Saving the file starts a new col
 - `hashtags` are followed on Mastodon and Bluesky. Leave off the `#`.
 - `since` is the earliest date to keep, as `YYYY-MM-DD`.
 - `mastodon_instances` is optional: the servers to read hashtags from. Defaults to mastodon.social, mastodon.online, mstdn.social, mas.to and mastodon.world.
-- `lemmy_queries` are plain words for Lemmy's search (no quotes); defaults to the title. `tumblr_tags` are Tumblr tags, spaces allowed; defaults to `hashtags`. `news_queries` are the news searches; they default to the first entry in `queries`.
+- `lemmy_queries` are plain words for Lemmy's search (no quotes); defaults to the title. `tumblr_tags` are Tumblr tags, spaces allowed; defaults to `hashtags`. `news_queries` are the news searches; they default to the first entry in `queries`. GDELT matches the whole article, so `news_title_words` keeps only headlines containing one of its words.
 - `relevance` is a list of words; a Lemmy or Tumblr post is kept only if it contains one. It keeps out the Homer, the album and anything else sharing the title.
 - Adding a hashtag, tag, query or server gives that source one deep pass back to `since` on the next run.
 - `release` is optional: the release or premiere date, as `YYYY-MM-DD`. The site marks it on the volume chart.

@@ -180,6 +180,12 @@ class Sources(unittest.TestCase):
         self.assertEqual(found[0]["engagement"], 40)
         self.assertEqual(len(fake.calls), 1)  # the page reached back past "since", so no second page
 
+    def test_news_headlines(self):
+        self.assertEqual(collect.tidy_headline("Spider - Man : Brand New Day , reviewed"), "Spider-Man: Brand New Day, reviewed")
+        project = {**PROJECT, "news_title_words": ["test film"]}
+        self.assertTrue(collect.headline_matches(project, "Test Film tops box office"))
+        self.assertFalse(collect.headline_matches(project, "AP News Summary at 12:16"))
+
     def test_news(self):
         body = json.dumps({"articles": [{"url": "https://variety.com/a", "title": "Test Film tops box office", "seendate": "20260914T132200Z", "domain": "variety.com"}]})
         asked = []

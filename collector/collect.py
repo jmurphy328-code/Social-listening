@@ -453,6 +453,18 @@ GDELT_PAUSE = 6  # GDELT asks for no more than one request every five seconds
 NEWS_BUDGET = 12 * 60  # seconds; past this, or after three refused ranges in a row, the rest wait for the next run
 
 
+def tidy_headline(title):
+    """GDELT spaces out punctuation ("Spider - Man : Brand New Day"); close it up again."""
+    title = re.sub(r"(\w) - (\w)", r"\1-\2", clean(title))
+    return re.sub(r" ([:,.!?;])", r"\1", title)
+
+
+def headline_matches(project, title):
+    words = [w.lower() for w in project.get("news_title_words", []) if str(w).strip()]
+    low = title.lower()
+    return not words or any(w in low for w in words)
+
+
 def gdelt_stamp(day):
     return day.strftime("%Y%m%d") + "000000"
 
@@ -502,8 +514,9 @@ def collect_news(project, since_iso, limits, first_run, now=None):
             for art in articles:
                 seen = str(art.get("seendate", ""))
                 when = f"{seen[:4]}-{seen[4:6]}-{seen[6:8]}T{seen[9:11]}:{seen[11:13]}:{seen[13:15]}Z" if len(seen) >= 15 else ""
-                if art.get("title") and art.get("url"):
-                    found.append(record("news:" + art["url"], "News", "article", when, art.get("domain"), art["title"], 0, art["url"], query))
+                title = tidy_headline(art.get("title"))
+                if title and art.get("url") and headline_matches(project, title):  # GDELT matches article text; keep headlines about the film
+                    found.append(record("news:" + art["url"], "News", "article", when, art.get("domain"), title, 0, art["url"], query))
     total = len(queries) * len(windows)
     if missed == total:
         raise SourceError(last_err or "api.gdeltproject.org sent nothing usable")
