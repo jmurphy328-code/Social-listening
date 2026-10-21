@@ -450,6 +450,7 @@ def half_month_windows(since_iso, now):
 
 
 GDELT_PAUSE = 6  # GDELT asks for no more than one request every five seconds
+NEWS_BUDGET = 12 * 60  # seconds; past this, or after three refused ranges in a row, the rest wait for the next run
 
 
 def gdelt_stamp(day):
@@ -466,10 +467,14 @@ def collect_news(project, since_iso, limits, first_run, now=None):
     windows = list(half_month_windows(since_iso, now))
     if not first_run:
         windows = [(dt.date.fromisoformat(since_iso[:10]), now.date() + dt.timedelta(days=1))]
-    found, asked, missed, last_err = [], 0, 0, ""
+    found, asked, missed, last_err, streak = [], 0, 0, "", 0
+    began = time.monotonic()
     for query in queries:
         for start, end in windows:
             body = None
+            if streak >= 3 or time.monotonic() - began > NEWS_BUDGET:
+                missed += 1
+                continue
             for wait in (0, 30, 90):  # GitHub's servers are shared, so GDELT may already be counting someone else's requests
                 if asked or wait:
                     time.sleep(GDELT_PAUSE + wait)
@@ -486,8 +491,9 @@ def collect_news(project, since_iso, limits, first_run, now=None):
                     continue
                 break
             if body is None:
-                missed += 1
+                missed, streak = missed + 1, streak + 1
                 continue
+            streak = 0
             try:
                 articles = json.loads(body).get("articles") or [] if body.strip() else []  # empty body: nothing matched
             except json.JSONDecodeError:
