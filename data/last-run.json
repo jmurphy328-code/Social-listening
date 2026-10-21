@@ -1,5 +1,5 @@
 {
-  "ran_at": "2026-10-21T09:45:22Z",
+  "ran_at": "2026-10-21T15:48:53Z",
   "projects": [
     {
       "slug": "the-odyssey",
@@ -20,16 +20,29 @@
         },
         "mastodon": {
           "status": "ok",
-          "found": 40,
-          "new": 0
+          "found": 3332,
+          "new": 1002
+        },
+        "lemmy": {
+          "status": "ok",
+          "found": 588,
+          "new": 588
+        },
+        "tumblr": {
+          "status": "skipped",
+          "note": "add the TUMBLR_API_KEY secret"
+        },
+        "news": {
+          "status": "error",
+          "note": "news.google.com answered 503"
         },
         "wikipedia": {
           "status": "ok",
           "found": 477,
-          "new": 1
+          "new": 0
         }
       },
-      "total": 2345
+      "total": 3935
     },
     {
       "slug": "spider-man-brand-new-day",
@@ -50,16 +63,29 @@
         },
         "mastodon": {
           "status": "ok",
-          "found": 40,
-          "new": 1
+          "found": 2160,
+          "new": 619
+        },
+        "lemmy": {
+          "status": "ok",
+          "found": 170,
+          "new": 170
+        },
+        "tumblr": {
+          "status": "skipped",
+          "note": "add the TUMBLR_API_KEY secret"
+        },
+        "news": {
+          "status": "error",
+          "note": "news.google.com answered 503"
         },
         "wikipedia": {
           "status": "ok",
           "found": 477,
-          "new": 1
+          "new": 0
         }
       },
-      "total": 1544
+      "total": 2333
     }
   ]
 }
