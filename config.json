@@ -18,7 +18,8 @@
         "Cast": ["cast", "casting", "actor*", "actress*", "performance*", "starring", "matt damon", "damon", "mattdamon", "tom holland", "holland", "tomholland", "anne hathaway", "hathaway", "annehathaway", "zendaya", "robert pattinson", "pattinson", "robertpattinson", "lupita", "nyong'o", "charlize", "theron", "bernthal", "samantha morton", "himesh patel", "elliot page", "elliotpage", "safdie", "leguizamo", "bill irwin"],
         "Director": ["nolan", "christophernolan", "director", "directed", "directing", "direction", "filmmaker"],
         "How it was made": ["imax", "70mm", "70 mm", "65mm", "shot on", "film cameras", "cinematograph*", "hoytema", "hoyte", "göransson", "goransson", "score", "soundtrack", "sound design", "practical effects", "visual effects", "vfx", "cgi", "stunt*", "costume*", "production design", "behind the scenes", "filming", "filmed", "on location", "budget", "aspect ratio"],
-        "Marketing": ["trailer*", "teaser*", "poster*", "marketing", "promo*", "campaign", "press tour", "premiere", "red carpet", "interview*", "presale*", "pre sale", "advance tickets", "tickets on sale", "year in advance", "sold out", "merch*", "popcorn bucket", "billboard*", "tv spot", "featurette", "first look"]
+        "Marketing": ["trailer*", "teaser*", "poster*", "marketing", "promo*", "campaign", "press tour", "premiere", "red carpet", "interview*", "presale*", "pre sale", "advance tickets", "tickets on sale", "year in advance", "sold out", "merch*", "popcorn bucket", "billboard*", "tv spot", "featurette", "first look"],
+        "Word of mouth": ["word of mouth", "go see it", "go see this", "go watch it", "you need to see", "you have to see", "you gotta see", "must see", "must watch", "recommend*", "told me to see", "told me to watch", "my friend said", "friends said", "everyone is talking", "everybody is talking", "believe the hype", "sleeper hit", "saw it twice", "seeing it again", "see it again", "watch it again", "second time", "rewatch*", "dragged my", "bring your friends", "tiktok made me"]
       },
       "events": [
         {"date": "2025-07-01", "label": "Teaser trailer in theaters (date approximate)"},
@@ -50,12 +51,45 @@
         "Cast": ["cast", "casting", "actor*", "actress*", "performance*", "starring", "tom holland", "holland", "tomholland", "zendaya", "sadie sink", "sadiesink", "jacob batalon", "batalon", "jon bernthal", "bernthal", "florence pugh", "pugh", "florencepugh", "tramell tillman", "tillman", "marisa tomei", "tomei", "mark ruffalo", "ruffalo", "markruffalo", "michael mando", "mando", "colón-zayas", "colon-zayas", "naomi watts"],
         "Director": ["cretton", "destin daniel cretton", "destindanielcretton", "director", "directed", "directing", "direction", "filmmaker"],
         "How it was made": ["imax", "suit", "score", "giacchino", "soundtrack", "sound design", "cinematograph*", "pawlak", "glasgow", "set photos", "set video", "practical effects", "visual effects", "vfx", "cgi", "stunt*", "costume*", "production design", "behind the scenes", "filming", "filmed", "on location", "budget"],
-        "Marketing": ["trailer*", "teaser*", "poster*", "marketing", "promo*", "campaign", "press tour", "premiere", "red carpet", "interview*", "presale*", "pre sale", "advance tickets", "tickets on sale", "year in advance", "sold out", "merch*", "popcorn bucket", "billboard*", "tv spot", "featurette", "first look", "suit reveal"]
+        "Marketing": ["trailer*", "teaser*", "poster*", "marketing", "promo*", "campaign", "press tour", "premiere", "red carpet", "interview*", "presale*", "pre sale", "advance tickets", "tickets on sale", "year in advance", "sold out", "merch*", "popcorn bucket", "billboard*", "tv spot", "featurette", "first look", "suit reveal"],
+        "Word of mouth": ["word of mouth", "go see it", "go see this", "go watch it", "you need to see", "you have to see", "you gotta see", "must see", "must watch", "recommend*", "told me to see", "told me to watch", "my friend said", "friends said", "everyone is talking", "everybody is talking", "believe the hype", "sleeper hit", "saw it twice", "seeing it again", "see it again", "watch it again", "second time", "rewatch*", "dragged my", "bring your friends", "tiktok made me"]
       },
       "events": [
         {"date": "2026-07-27", "label": "World premiere, Los Angeles"}
       ],
       "voices": {"owned": ["sonypictures", "spidermanmovie", "marvelstudios", "marvelentertainment"]}
+    },
+    {
+      "slug": "obsession",
+      "title": "Obsession",
+      "queries": ["\"Obsession\" \"Curry Barker\"", "\"Obsession\" horror movie"],
+      "hashtags": ["ObsessionMovie", "ObsessionFilm", "Obsession2026", "CurryBarker"],
+      "lemmy_queries": ["Obsession", "Curry Barker"],
+      "news_queries": ["\"Curry Barker\" Obsession"],
+      "news_title_words": ["obsession"],
+      "tumblr_tags": ["obsession movie", "obsession 2026", "obsession 2025", "obsession horror", "curry barker", "obsession curry barker"],
+      "relevance": ["curry barker", "currybarker", "barker", "navarrette", "inde navarrette", "michael johnston", "cooper tomlinson", "megan lawless", "andy richter", "one wish willow", "wish willow", "focus features", "blumhouse", "bad idea", "horror", "box office"],
+      "since": "2025-09-01",
+      "release": "2026-05-15",
+      "wikipedia": "Obsession_(2025_film)",
+      "drivers": {
+        "Cast": ["cast", "casting", "actor*", "actress*", "performance*", "starring", "inde navarrette", "navarrette", "indenavarrette", "michael johnston", "johnston", "cooper tomlinson", "tomlinson", "coopertomlinson", "megan lawless", "andy richter", "richter", "haley fitzgerald", "darin toonder"],
+        "Director": ["curry barker", "barker", "currybarker", "director", "directed", "directing", "direction", "filmmaker", "youtuber*", "youtube channel", "that's a bad idea", "thats a bad idea", "thatsabadidea", "first time director", "first-time director"],
+        "How it was made": ["budget", "low budget", "micro budget", "750k", "750 000", "indie", "independent film", "shot in", "filming", "filmed", "cinematograph*", "taylor clemons", "clemons", "score", "soundtrack", "composer", "rock burwell", "burwell", "sound design", "practical effects", "visual effects", "vfx", "cgi", "costume*", "production design", "behind the scenes", "on location", "burbank", "reshoot*", "blumhouse", "20 days", "26 days"],
+        "Marketing": ["trailer*", "teaser*", "poster*", "marketing", "promo*", "campaign", "press tour", "premiere", "tiff", "midnight madness", "festival", "focusfest", "focus features", "acquired", "acquisition", "interview*", "red carpet", "tv spot", "featurette", "first look", "merch*", "tickets on sale", "sold out"],
+        "Word of mouth": ["word of mouth", "go see it", "go see this", "go watch it", "you need to see", "you have to see", "you gotta see", "must see", "must watch", "recommend*", "told me to see", "told me to watch", "my friend said", "friends said", "everyone is talking", "everybody is talking", "believe the hype", "sleeper hit", "saw it twice", "seeing it again", "see it again", "watch it again", "second time", "rewatch*", "dragged my", "bring your friends", "tiktok made me"]
+      },
+      "events": [
+        {"date": "2025-09-05", "label": "World premiere, TIFF Midnight Madness"},
+        {"date": "2025-10-14", "label": "Focus Features acquires worldwide rights"},
+        {"date": "2025-10-18", "label": "FocusFest screening, Universal lot"},
+        {"date": "2025-12-15", "label": "First teaser, with Blumhouse (date approximate)"},
+        {"date": "2026-05-22", "label": "Second weekend: box office rises nearly 40%"},
+        {"date": "2026-06-30", "label": "Premium video on demand"},
+        {"date": "2026-07-14", "label": "DVD, Blu-ray and 4K release"},
+        {"date": "2026-07-17", "label": "Streaming on Peacock (same day The Odyssey opens)"}
+      ],
+      "voices": {"owned": ["focusfeatures", "obsessionmovie", "obsessionfilm", "blumhouse", "currybarker", "thatsabadidea"]}
     }
   ]
 }
