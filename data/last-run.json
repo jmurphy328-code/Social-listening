@@ -1,5 +1,5 @@
 {
-  "ran_at": "2026-11-02T19:29:30Z",
+  "ran_at": "2026-11-03T17:03:32Z",
   "projects": [
     {
       "slug": "the-odyssey",
@@ -20,13 +20,13 @@
         },
         "mastodon": {
           "status": "ok",
-          "found": 142,
-          "new": 4
+          "found": 141,
+          "new": 3
         },
         "lemmy": {
           "status": "ok",
-          "found": 38,
-          "new": 0
+          "found": 37,
+          "new": 1
         },
         "tumblr": {
           "status": "skipped",
@@ -34,17 +34,17 @@
         },
         "news": {
           "status": "partial",
-          "found": 269,
+          "found": 268,
           "new": 0,
           "note": "28 of 33 date ranges missed (api.gdeltproject.org answered 429); they are asked again next run"
         },
         "wikipedia": {
           "status": "ok",
-          "found": 489,
+          "found": 490,
           "new": 1
         }
       },
-      "total": 4707
+      "total": 4711
     },
     {
       "slug": "spider-man-brand-new-day",
@@ -65,13 +65,13 @@
         },
         "mastodon": {
           "status": "ok",
-          "found": 264,
+          "found": 262,
           "new": 3
         },
         "lemmy": {
           "status": "ok",
-          "found": 5,
-          "new": 0
+          "found": 6,
+          "new": 1
         },
         "tumblr": {
           "status": "skipped",
@@ -79,17 +79,17 @@
         },
         "news": {
           "status": "partial",
-          "found": 774,
+          "found": 784,
           "new": 0,
-          "note": "25 of 33 date ranges missed (api.gdeltproject.org answered 429); they are asked again next run"
+          "note": "24 of 33 date ranges missed (api.gdeltproject.org answered 429); they are asked again next run"
         },
         "wikipedia": {
           "status": "ok",
-          "found": 489,
+          "found": 490,
           "new": 1
         }
       },
-      "total": 3409
+      "total": 3413
     },
     {
       "slug": "obsession",
@@ -111,12 +111,12 @@
         "mastodon": {
           "status": "ok",
           "found": 126,
-          "new": 2
+          "new": 0
         },
         "lemmy": {
           "status": "ok",
           "found": 34,
-          "new": 1
+          "new": 0
         },
         "tumblr": {
           "status": "skipped",
@@ -130,7 +130,7 @@
         },
         "wikipedia": {
           "status": "ok",
-          "found": 421,
+          "found": 422,
           "new": 1
         }
       },
