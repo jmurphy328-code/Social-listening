@@ -1,5 +1,5 @@
 {
-  "ran_at": "2026-11-06T16:46:25Z",
+  "ran_at": "2026-11-07T15:39:45Z",
   "projects": [
     {
       "slug": "the-odyssey",
@@ -20,8 +20,8 @@
         },
         "mastodon": {
           "status": "ok",
-          "found": 175,
-          "new": 9
+          "found": 185,
+          "new": 3
         },
         "lemmy": {
           "status": "ok",
@@ -34,17 +34,17 @@
         },
         "news": {
           "status": "partial",
-          "found": 280,
+          "found": 404,
           "new": 0,
-          "note": "26 of 33 date ranges missed (api.gdeltproject.org answered 429); they are asked again next run"
+          "note": "24 of 33 date ranges missed (api.gdeltproject.org answered 429); they are asked again next run"
         },
         "wikipedia": {
           "status": "ok",
-          "found": 493,
+          "found": 494,
           "new": 1
         }
       },
-      "total": 4732
+      "total": 4736
     },
     {
       "slug": "spider-man-brand-new-day",
@@ -65,8 +65,8 @@
         },
         "mastodon": {
           "status": "ok",
-          "found": 260,
-          "new": 2
+          "found": 261,
+          "new": 1
         },
         "lemmy": {
           "status": "ok",
@@ -79,17 +79,17 @@
         },
         "news": {
           "status": "partial",
-          "found": 854,
+          "found": 774,
           "new": 0,
-          "note": "23 of 33 date ranges missed (api.gdeltproject.org answered 429); they are asked again next run"
+          "note": "25 of 33 date ranges missed (api.gdeltproject.org answered 429); they are asked again next run"
         },
         "wikipedia": {
           "status": "ok",
-          "found": 493,
+          "found": 494,
           "new": 1
         }
       },
-      "total": 3423
+      "total": 3424
     },
     {
       "slug": "obsession",
@@ -124,13 +124,13 @@
         },
         "news": {
           "status": "partial",
-          "found": 16,
+          "found": 11,
           "new": 0,
-          "note": "20 of 29 date ranges missed (api.gdeltproject.org answered 429); they are asked again next run"
+          "note": "21 of 29 date ranges missed (api.gdeltproject.org answered 429); they are asked again next run"
         },
         "wikipedia": {
           "status": "ok",
-          "found": 425,
+          "found": 426,
           "new": 1
         }
       },
