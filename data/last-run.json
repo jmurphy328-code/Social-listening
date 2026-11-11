@@ -1,5 +1,5 @@
 {
-  "ran_at": "2026-11-10T17:03:04Z",
+  "ran_at": "2026-11-11T17:08:05Z",
   "projects": [
     {
       "slug": "the-odyssey",
@@ -20,13 +20,13 @@
         },
         "mastodon": {
           "status": "ok",
-          "found": 132,
-          "new": 5
+          "found": 131,
+          "new": 4
         },
         "lemmy": {
           "status": "ok",
-          "found": 52,
-          "new": 17
+          "found": 74,
+          "new": 9
         },
         "tumblr": {
           "status": "skipped",
@@ -34,17 +34,17 @@
         },
         "news": {
           "status": "partial",
-          "found": 119,
+          "found": 268,
           "new": 0,
-          "note": "30 of 33 date ranges missed (api.gdeltproject.org answered 429); they are asked again next run"
+          "note": "28 of 33 date ranges missed (api.gdeltproject.org answered 429); they are asked again next run"
         },
         "wikipedia": {
           "status": "ok",
-          "found": 497,
+          "found": 498,
           "new": 1
         }
       },
-      "total": 4772
+      "total": 4785
     },
     {
       "slug": "spider-man-brand-new-day",
@@ -66,7 +66,7 @@
         "mastodon": {
           "status": "ok",
           "found": 261,
-          "new": 1
+          "new": 0
         },
         "lemmy": {
           "status": "ok",
@@ -79,13 +79,13 @@
         },
         "news": {
           "status": "partial",
-          "found": 675,
+          "found": 500,
           "new": 0,
-          "note": "27 of 33 date ranges missed (api.gdeltproject.org answered 429); they are asked again next run"
+          "note": "28 of 33 date ranges missed (api.gdeltproject.org answered 429); they are asked again next run"
         },
         "wikipedia": {
           "status": "ok",
-          "found": 497,
+          "found": 498,
           "new": 1
         }
       },
@@ -111,11 +111,11 @@
         "mastodon": {
           "status": "ok",
           "found": 126,
-          "new": 1
+          "new": 0
         },
         "lemmy": {
           "status": "ok",
-          "found": 32,
+          "found": 31,
           "new": 0
         },
         "tumblr": {
@@ -124,13 +124,13 @@
         },
         "news": {
           "status": "partial",
-          "found": 6,
+          "found": 8,
           "new": 0,
-          "note": "26 of 29 date ranges missed (api.gdeltproject.org answered 429); they are asked again next run"
+          "note": "23 of 29 date ranges missed (api.gdeltproject.org answered 429); they are asked again next run"
         },
         "wikipedia": {
           "status": "ok",
-          "found": 429,
+          "found": 430,
           "new": 1
         }
       },
